@@ -882,3 +882,45 @@ body {
     max-width: none;
   }
 }
+/* Additional styles for new fields */
+.text-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  transition: border-color 0.2s;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: #F5C400;
+  box-shadow: 0 0 0 2px rgba(245, 196, 0, 0.1);
+}
+
+/* Highlight effect for new rows */
+.highlight-row {
+  background-color: rgba(245, 196, 0, 0.2) !important;
+  transition: background-color 0.3s ease;
+}
+
+/* Ensure table columns are properly sized */
+.checks-table th {
+  white-space: nowrap;
+}
+
+.checks-table td {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hover to show full content */
+.checks-table td:hover {
+  white-space: normal;
+  word-break: break-word;
+  position: relative;
+  z-index: 10;
+  background-color: #fef9e6;
+}

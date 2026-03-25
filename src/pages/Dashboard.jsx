@@ -23,20 +23,20 @@ function Dashboard() {
     pay_to_the_order_of: '',
     amount: '',
     date: '',
-    cr: '',
-    cr_date: '',
     date_deposited: '',
-    bank_deposited: ''
+    bank_deposited: '',
+    received_by: '',
+    deposited_by: ''
   });
   const [receivedModalOpen, setReceivedModalOpen] = useState(false);
   const [receivedCheckId, setReceivedCheckId] = useState(null);
   const [receivedDate, setReceivedDate] = useState('');
+  const [receivedBy, setReceivedBy] = useState('');
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef(null);
   const eventSourceRef = useRef(null);
 
   const showToast = (message, type = 'info') => {
-    console.log('Showing toast:', message, type);
     setToast({ message, visible: true, type });
     setTimeout(() => {
       setToast(null);
@@ -179,7 +179,7 @@ function Dashboard() {
         
         eventSource.onopen = () => {
           console.log('✅ SSE connection established successfully');
-          reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+          reconnectAttempts = 0;
         };
         
         eventSource.onmessage = (event) => {
@@ -187,22 +187,13 @@ function Dashboard() {
             const newNotification = JSON.parse(event.data);
             console.log('🔔 New notification received:', newNotification);
             
-            // Add to notification history
             setNotifications(prev => [newNotification, ...prev]);
-            
-            // Show toast popup for real-time alert
             showToast(newNotification.message, 'info');
             
-            // Play notification sound (optional)
-            // const audio = new Audio('/notification.mp3');
-            // audio.play().catch(e => console.log('Audio play failed:', e));
-            
-            // Update unread count
             if (!newNotification.read) {
               setUnreadCount(prev => prev + 1);
             }
             
-            // Refresh checks immediately when new check arrives
             if (newNotification.message.includes('new check')) {
               if (refreshTimeoutRef.current) {
                 clearTimeout(refreshTimeoutRef.current);
@@ -221,7 +212,6 @@ function Dashboard() {
           console.error('❌ SSE error:', error);
           eventSource.close();
           
-          // Exponential backoff reconnect
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
           console.log(`Attempting to reconnect in ${delay}ms...`);
           
@@ -263,7 +253,7 @@ function Dashboard() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this check?')) return;
+    if (!window.confirm('Are you sure you want to delete this check? This action cannot be undone.')) return;
     try {
       await axios.delete(`${API_URL}/api/checks/${id}`);
       await refreshData();
@@ -281,10 +271,10 @@ function Dashboard() {
       pay_to_the_order_of: check.pay_to_the_order_of || '',
       amount: check.amount || '',
       date: check.date || '',
-      cr: check.cr || '',
-      cr_date: check.cr_date || '',
       date_deposited: check.date_deposited || '',
-      bank_deposited: check.bank_deposited || ''
+      bank_deposited: check.bank_deposited || '',
+      received_by: check.received_by || '',
+      deposited_by: check.deposited_by || ''
     });
     setEditModalOpen(true);
   };
@@ -311,6 +301,7 @@ function Dashboard() {
   const openReceivedModal = (checkId) => {
     const today = new Date().toISOString().split('T')[0];
     setReceivedDate(today);
+    setReceivedBy('');
     setReceivedCheckId(checkId);
     setReceivedModalOpen(true);
   };
@@ -319,13 +310,18 @@ function Dashboard() {
     setReceivedModalOpen(false);
     setReceivedCheckId(null);
     setReceivedDate('');
+    setReceivedBy('');
   };
 
   const handleMarkReceived = async () => {
-    if (!receivedCheckId || !receivedDate) return;
+    if (!receivedCheckId || !receivedDate || !receivedBy) {
+      alert('Please fill in both received date and received by fields');
+      return;
+    }
     try {
       const formData = new FormData();
       formData.append('received_date', receivedDate);
+      formData.append('received_by', receivedBy);
       await axios.put(`${API_URL}/api/checks/${receivedCheckId}/received`, formData);
       await refreshData();
       closeReceivedModal();
@@ -336,15 +332,15 @@ function Dashboard() {
     }
   };
 
-  const handleUnmarkReceived = async (checkId) => {
-    if (!window.confirm('Unmark this check as received?')) return;
+  const handleMarkNotReceived = async (checkId) => {
+    if (!window.confirm('Mark this check as not received? This will clear the received date and received by information.')) return;
     try {
       await axios.put(`${API_URL}/api/checks/${checkId}/unreceived`);
       await refreshData();
-      showToast('Check unmarked as received', 'success');
+      showToast('Check marked as not received', 'success');
     } catch (error) {
-      console.error('Error unmarking:', error);
-      alert('Failed to unmark check');
+      console.error('Error marking not received:', error);
+      alert('Failed to update check status');
     }
   };
 
@@ -366,10 +362,12 @@ function Dashboard() {
       Date: check.date || '',
       Status: check.is_received ? 'Received' : 'Not Received',
       'Received Date': check.received_date || '',
-      CR: check.cr || '',
+      'Received By': check.received_by || '',
+      'CR No.': check.cr || '',
       'CR Date': check.cr_date || '',
       'Date Deposited': check.date_deposited || '',
       'Bank Deposited': check.bank_deposited || '',
+      'Deposited By': check.deposited_by || '',
       'Date of Scan': new Date(check.created_at).toLocaleString()
     }));
 
@@ -550,11 +548,13 @@ function Dashboard() {
                       <th>Amount</th>
                       <th>Date</th>
                       <th>Status</th>
-                      <th>Received Date Physically</th>
+                      <th>Received Date</th>
+                      <th>Received By</th>
                       <th>CR No.</th>
                       <th>CR Date</th>
                       <th>Date Deposited</th>
                       <th>Bank Deposited</th>
+                      <th>Deposited By</th>
                       <th>Date of Scan</th>
                       <th>Actions</th>
                     </tr>
@@ -582,23 +582,37 @@ function Dashboard() {
                           {check.is_received ? (
                             <span className="received-badge">Received</span>
                           ) : (
-                            <button onClick={() => openReceivedModal(check.id)} className="mark-received-button">
+                            <button 
+                              onClick={() => openReceivedModal(check.id)} 
+                              className="mark-received-button"
+                            >
                               Mark Received
                             </button>
                           )}
                         </td>
                         <td>{check.received_date || '-'}</td>
+                        <td>{check.received_by || '-'}</td>
                         <td>{check.cr || '-'}</td>
                         <td>{check.cr_date || '-'}</td>
                         <td>{check.date_deposited || '-'}</td>
                         <td>{check.bank_deposited || '-'}</td>
+                        <td>{check.deposited_by || '-'}</td>
                         <td>{formatDate(check.created_at)}</td>
                         <td className="actions">
-                          <button onClick={() => openEditModal(check)} className="edit-button">Edit</button>
-                          <button onClick={() => handleDelete(check.id)} className="delete-button">Delete</button>
-                          {check.is_received && (
-                            <button onClick={() => handleUnmarkReceived(check.id)} className="unmark-button">Undo</button>
-                          )}
+                          <button onClick={() => openEditModal(check)} className="edit-button" title="Edit check details">
+                            Edit
+                          </button>
+                          <button onClick={() => handleDelete(check.id)} className="delete-button" title="Delete check">
+                            Delete
+                          </button>
+                          {/* Always show Not Received button */}
+                          <button 
+                            onClick={() => handleMarkNotReceived(check.id)} 
+                            className="unmark-button"
+                            title="Mark as not received"
+                          >
+                            Not Received
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -652,7 +666,7 @@ function Dashboard() {
         )}
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit Modal - Without CR and CR Date fields */}
       {editModalOpen && currentCheck && (
         <div className="modal-overlay" onClick={closeEditModal}>
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
@@ -664,6 +678,7 @@ function Dashboard() {
                   type="text"
                   value={editFormData.account_name}
                   onChange={(e) => setEditFormData({ ...editFormData, account_name: e.target.value })}
+                  placeholder="Enter account name"
                 />
               </div>
               <div className="form-group">
@@ -672,6 +687,7 @@ function Dashboard() {
                   type="text"
                   value={editFormData.pay_to_the_order_of}
                   onChange={(e) => setEditFormData({ ...editFormData, pay_to_the_order_of: e.target.value })}
+                  placeholder="Enter payee name"
                 />
               </div>
               <div className="form-group">
@@ -680,6 +696,7 @@ function Dashboard() {
                   type="text"
                   value={editFormData.amount}
                   onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
+                  placeholder="Enter amount"
                 />
               </div>
               <div className="form-group">
@@ -688,22 +705,7 @@ function Dashboard() {
                   type="text"
                   value={editFormData.date}
                   onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>CR</label>
-                <input
-                  type="text"
-                  value={editFormData.cr}
-                  onChange={(e) => setEditFormData({ ...editFormData, cr: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>CR Date</label>
-                <input
-                  type="date"
-                  value={editFormData.cr_date}
-                  onChange={(e) => setEditFormData({ ...editFormData, cr_date: e.target.value })}
+                  placeholder="MM-DD-YYYY"
                 />
               </div>
               <div className="form-group">
@@ -720,6 +722,25 @@ function Dashboard() {
                   type="text"
                   value={editFormData.bank_deposited}
                   onChange={(e) => setEditFormData({ ...editFormData, bank_deposited: e.target.value })}
+                  placeholder="Enter bank name"
+                />
+              </div>
+              <div className="form-group">
+                <label>Received By</label>
+                <input
+                  type="text"
+                  value={editFormData.received_by}
+                  onChange={(e) => setEditFormData({ ...editFormData, received_by: e.target.value })}
+                  placeholder="Who received this check?"
+                />
+              </div>
+              <div className="form-group">
+                <label>Deposited By</label>
+                <input
+                  type="text"
+                  value={editFormData.deposited_by}
+                  onChange={(e) => setEditFormData({ ...editFormData, deposited_by: e.target.value })}
+                  placeholder="Who deposited this check?"
                 />
               </div>
               <div className="modal-buttons">
@@ -737,16 +758,28 @@ function Dashboard() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>Mark Check as Received</h3>
             <div className="form-group">
-              <label>Received Date</label>
+              <label>Received Date <span className="required-star">*</span></label>
               <input
                 type="date"
                 value={receivedDate}
                 onChange={(e) => setReceivedDate(e.target.value)}
                 className="date-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Received By <span className="required-star">*</span></label>
+              <input
+                type="text"
+                value={receivedBy}
+                onChange={(e) => setReceivedBy(e.target.value)}
+                placeholder="Enter name of person who received"
+                className="text-input"
+                required
               />
             </div>
             <div className="modal-buttons">
-              <button onClick={handleMarkReceived} className="save-button">Confirm</button>
+              <button onClick={handleMarkReceived} className="save-button">Confirm Received</button>
               <button onClick={closeReceivedModal} className="cancel-button">Cancel</button>
             </div>
           </div>
