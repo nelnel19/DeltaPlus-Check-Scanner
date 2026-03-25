@@ -4,13 +4,20 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
 function App() {
-  const isLoggedIn = localStorage.getItem('isLoggedIn');
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />} />
-        <Route path="/" element={<Navigate to={isLoggedIn ? "/dashboard" : "/login"} />} />
+        <Route 
+          path="/dashboard" 
+          element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/" 
+          element={<Navigate to="/login" />} 
+        />
       </Routes>
     </Router>
   );

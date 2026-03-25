@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import '../styles/dashboard.css';
 
-const API_URL = 'http://10.80.10.13:8000';
+const API_URL = 'http://192.168.1.115:8000';
 
 function Dashboard() {
   const [activeTab, setActiveTab] = useState('checks');
@@ -12,6 +12,7 @@ function Dashboard() {
   const [filteredChecks, setFilteredChecks] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [scanDate, setScanDate] = useState('');
+  const [depositedDate, setDepositedDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -25,13 +26,14 @@ function Dashboard() {
     date: '',
     date_deposited: '',
     bank_deposited: '',
-    received_by: '',
     deposited_by: ''
   });
   const [receivedModalOpen, setReceivedModalOpen] = useState(false);
   const [receivedCheckId, setReceivedCheckId] = useState(null);
   const [receivedDate, setReceivedDate] = useState('');
   const [receivedBy, setReceivedBy] = useState('');
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState('');
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef(null);
   const eventSourceRef = useRef(null);
@@ -91,13 +93,7 @@ function Dashboard() {
     try {
       const response = await axios.get(`${API_URL}/api/checks`);
       setChecks(response.data);
-      // Debug: Log checks to see if is_received is true
       console.log('Fetched checks:', response.data);
-      response.data.forEach(check => {
-        if (check.is_received) {
-          console.log(`Check ${check.id} is received:`, check);
-        }
-      });
     } catch (error) {
       console.error('Error fetching checks:', error);
       alert('Failed to load checks. Make sure backend is running.');
@@ -118,12 +114,14 @@ function Dashboard() {
   const applyFilters = () => {
     let result = [...checks];
 
+    // Filter by received status
     if (filterStatus === 'received') {
       result = result.filter(check => check.is_received === true);
     } else if (filterStatus === 'not_received') {
       result = result.filter(check => check.is_received === false);
     }
 
+    // Filter by scan date
     if (scanDate) {
       const selectedDate = new Date(scanDate);
       selectedDate.setHours(0, 0, 0, 0);
@@ -134,11 +132,27 @@ function Dashboard() {
       });
     }
 
+    // Filter by deposited date
+    if (depositedDate) {
+      const selectedDepositedDate = new Date(depositedDate);
+      selectedDepositedDate.setHours(0, 0, 0, 0);
+      result = result.filter(check => {
+        if (!check.date_deposited) return false;
+        const checkDepositedDate = new Date(check.date_deposited);
+        checkDepositedDate.setHours(0, 0, 0, 0);
+        return checkDepositedDate.getTime() === selectedDepositedDate.getTime();
+      });
+    }
+
     setFilteredChecks(result);
   };
 
-  const clearDateFilter = () => {
+  const clearScanDateFilter = () => {
     setScanDate('');
+  };
+
+  const clearDepositedDateFilter = () => {
+    setDepositedDate('');
   };
 
   const refreshData = async () => {
@@ -147,7 +161,6 @@ function Dashboard() {
     await fetchUnreadCount();
   };
 
-  // Initial data fetch
   useEffect(() => {
     if (!localStorage.getItem('isLoggedIn')) {
       navigate('/login');
@@ -156,7 +169,6 @@ function Dashboard() {
     
     refreshData();
     
-    // Auto-refresh every 10 seconds
     const intervalId = setInterval(() => {
       refreshData();
     }, 10000);
@@ -169,7 +181,6 @@ function Dashboard() {
     };
   }, [navigate]);
 
-  // SSE for real-time notifications with toast popups
   useEffect(() => {
     let reconnectTimeout = null;
     let reconnectAttempts = 0;
@@ -251,7 +262,7 @@ function Dashboard() {
 
   useEffect(() => {
     applyFilters();
-  }, [filterStatus, scanDate, checks]);
+  }, [filterStatus, scanDate, depositedDate, checks]);
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
@@ -259,10 +270,10 @@ function Dashboard() {
     navigate('/login');
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (checkId) => {
     if (!window.confirm('Are you sure you want to delete this check? This action cannot be undone.')) return;
     try {
-      await axios.delete(`${API_URL}/api/checks/${id}`);
+      await axios.delete(`${API_URL}/api/checks/${checkId}`);
       await refreshData();
       showToast('Check deleted successfully', 'success');
     } catch (error) {
@@ -280,7 +291,6 @@ function Dashboard() {
       date: check.date || '',
       date_deposited: check.date_deposited || '',
       bank_deposited: check.bank_deposited || '',
-      received_by: check.received_by || '',
       deposited_by: check.deposited_by || ''
     });
     setEditModalOpen(true);
@@ -295,7 +305,7 @@ function Dashboard() {
     e.preventDefault();
     if (!currentCheck) return;
     try {
-      await axios.put(`${API_URL}/api/checks/${currentCheck.id}`, editFormData);
+      await axios.put(`${API_URL}/api/checks/${currentCheck._id}`, editFormData);
       await refreshData();
       closeEditModal();
       showToast('Check updated successfully', 'success');
@@ -351,6 +361,16 @@ function Dashboard() {
     }
   };
 
+  const openImageModal = (imageUrl) => {
+    setSelectedImage(imageUrl);
+    setImageModalOpen(true);
+  };
+
+  const closeImageModal = () => {
+    setImageModalOpen(false);
+    setSelectedImage('');
+  };
+
   const exportToExcel = () => {
     if (filteredChecks.length === 0) {
       alert('No data to export');
@@ -358,24 +378,21 @@ function Dashboard() {
     }
 
     const exportData = filteredChecks.map(check => ({
-      ID: check.id,
-      'Saved By': check.user_full_name || '',
       'Bank Name': check.bank_name || '',
       'Account Name': check.account_name || '',
       'Account No.': check.account_no || '',
       'Check No.': check.check_no || '',
       'Pay To': check.pay_to_the_order_of || '',
-      Amount: check.amount || '',
-      Date: check.date || '',
-      Status: check.is_received ? 'Received' : 'Not Received',
+      'Amount': check.amount || '',
+      'Date': check.date || '',
+      'Status': check.is_received ? 'Received' : 'Not Received',
       'Received Date': check.received_date || '',
       'Received By': check.received_by || '',
       'CR No.': check.cr || '',
       'CR Date': check.cr_date || '',
       'Date Deposited': check.date_deposited || '',
       'Bank Deposited': check.bank_deposited || '',
-      'Deposited By': check.deposited_by || '',
-      'Date of Scan': new Date(check.created_at).toLocaleString()
+      'Deposited By': check.deposited_by || ''
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -432,7 +449,6 @@ function Dashboard() {
 
   return (
     <div className="dashboard-container">
-      {/* Toast Popup Notification */}
       {toast && toast.visible && (
         <div className={`toast-notification ${toast.type}`}>
           <span className="toast-icon">
@@ -442,7 +458,6 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Sticky Header Section */}
       <div className="sticky-header">
         <div className="dashboard-header">
           <div className="brand">
@@ -482,7 +497,6 @@ function Dashboard() {
           </button>
         </div>
 
-        {/* Filter Section */}
         {activeTab === 'checks' && (
           <div className="filter-section-compact">
             <div className="filter-group">
@@ -519,7 +533,24 @@ function Dashboard() {
                   className="date-input"
                 />
                 {scanDate && (
-                  <button onClick={clearDateFilter} className="clear-date-button" title="Clear date filter">
+                  <button onClick={clearScanDateFilter} className="clear-date-button" title="Clear scan date filter">
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <span className="filter-label">Deposited Date:</span>
+              <div className="date-filter-wrapper">
+                <input
+                  type="date"
+                  value={depositedDate}
+                  onChange={(e) => setDepositedDate(e.target.value)}
+                  className="date-input"
+                />
+                {depositedDate && (
+                  <button onClick={clearDepositedDateFilter} className="clear-date-button" title="Clear deposited date filter">
                     ×
                   </button>
                 )}
@@ -533,7 +564,6 @@ function Dashboard() {
         )}
       </div>
 
-      {/* Scrollable Content Area */}
       <div className="scrollable-content">
         {activeTab === 'checks' ? (
           <>
@@ -544,7 +574,6 @@ function Dashboard() {
                 <table className="checks-table">
                   <thead>
                     <tr>
-                      <th>ID</th>
                       <th>Image</th>
                       <th>Drivers Name</th>
                       <th>Bank Name</th>
@@ -568,13 +597,16 @@ function Dashboard() {
                   </thead>
                   <tbody>
                     {filteredChecks.map((check) => (
-                      <tr key={check.id} id={`check-row-${check.id}`}>
-                        <td>{check.id}</td>
+                      <tr key={check._id} id={`check-row-${check._id}`}>
                         <td>
                           {check.image_url ? (
-                            <a href={check.image_url} target="_blank" rel="noopener noreferrer">
-                              <img src={check.image_url} alt="Check" className="thumbnail" />
-                            </a>
+                            <img 
+                              src={check.image_url} 
+                              alt="Check" 
+                              className="thumbnail clickable-image" 
+                              onClick={() => openImageModal(check.image_url)}
+                              style={{ cursor: 'pointer' }}
+                            />
                           ) : '-'}
                         </td>
                         <td>{check.user_full_name || '-'}</td>
@@ -590,7 +622,7 @@ function Dashboard() {
                             <span className="received-badge">Received</span>
                           ) : (
                             <button 
-                              onClick={() => openReceivedModal(check.id)} 
+                              onClick={() => openReceivedModal(check._id)} 
                               className="mark-received-button"
                             >
                               Mark Received
@@ -609,12 +641,11 @@ function Dashboard() {
                           <button onClick={() => openEditModal(check)} className="edit-button" title="Edit check details">
                             Edit
                           </button>
-                          <button onClick={() => handleDelete(check.id)} className="delete-button" title="Delete check">
+                          <button onClick={() => handleDelete(check._id)} className="delete-button" title="Delete check">
                             Delete
                           </button>
-                          {/* Not Received button - ALWAYS show but with different styling based on status */}
                           <button 
-                            onClick={() => handleMarkNotReceived(check.id)} 
+                            onClick={() => handleMarkNotReceived(check._id)} 
                             className={`unmark-button ${check.is_received ? 'active' : 'disabled'}`}
                             title={check.is_received ? "Mark as not received" : "Not received (already not received)"}
                             style={!check.is_received ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
@@ -675,7 +706,17 @@ function Dashboard() {
         )}
       </div>
 
-      {/* Edit Modal - Without CR and CR Date fields */}
+      {/* Image Modal */}
+      {imageModalOpen && (
+        <div className="modal-overlay" onClick={closeImageModal}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="image-modal-close" onClick={closeImageModal}>×</button>
+            <img src={selectedImage} alt="Check Preview" className="full-image" />
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal - Without Received By field */}
       {editModalOpen && currentCheck && (
         <div className="modal-overlay" onClick={closeEditModal}>
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
@@ -732,15 +773,6 @@ function Dashboard() {
                   value={editFormData.bank_deposited}
                   onChange={(e) => setEditFormData({ ...editFormData, bank_deposited: e.target.value })}
                   placeholder="Enter bank name"
-                />
-              </div>
-              <div className="form-group">
-                <label>Received By</label>
-                <input
-                  type="text"
-                  value={editFormData.received_by}
-                  onChange={(e) => setEditFormData({ ...editFormData, received_by: e.target.value })}
-                  placeholder="Who received this check?"
                 />
               </div>
               <div className="form-group">
