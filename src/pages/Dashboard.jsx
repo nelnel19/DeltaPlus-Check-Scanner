@@ -550,8 +550,8 @@ function Dashboard() {
                       <th>Amount</th>
                       <th>Date</th>
                       <th>Status</th>
-                      <th>Received Date</th>
-                      <th>CR</th>
+                      <th>Received Date Physically</th>
+                      <th>CR No.</th>
                       <th>CR Date</th>
                       <th>Date Deposited</th>
                       <th>Bank Deposited</th>
