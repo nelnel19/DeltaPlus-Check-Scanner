@@ -605,14 +605,16 @@ function Dashboard() {
                           <button onClick={() => handleDelete(check.id)} className="delete-button" title="Delete check">
                             Delete
                           </button>
-                          {/* Always show Not Received button */}
-                          <button 
-                            onClick={() => handleMarkNotReceived(check.id)} 
-                            className="unmark-button"
-                            title="Mark as not received"
-                          >
-                            Not Received
-                          </button>
+                          {/* Not Received button only appears for checks that are marked as received */}
+                          {check.is_received && (
+                            <button 
+                              onClick={() => handleMarkNotReceived(check.id)} 
+                              className="unmark-button"
+                              title="Mark as not received"
+                            >
+                              Not Received
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
