@@ -320,7 +320,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  min-width: 1000px;
+  min-width: 1200px;
 }
 
 .checks-table th {
@@ -333,6 +333,7 @@ body {
   letter-spacing: 0.3px;
   text-transform: uppercase;
   border-bottom: 1px solid #eef2f6;
+  white-space: nowrap;
 }
 
 .checks-table td {
@@ -340,6 +341,10 @@ body {
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
   vertical-align: middle;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .checks-table tr:hover td {
@@ -393,6 +398,8 @@ body {
 /* Action buttons */
 .actions {
   white-space: nowrap;
+  min-width: 250px;
+  background-color: transparent;
 }
 
 .edit-button, .delete-button, .mark-received-button, .unmark-button {
@@ -404,6 +411,7 @@ body {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  display: inline-block;
 }
 
 .edit-button {
@@ -433,13 +441,31 @@ body {
   background-color: #e6b800;
 }
 
+/* Not Received button - ALWAYS VISIBLE with gray background */
 .unmark-button {
-  background-color: #6c757d;
-  color: white;
+  background-color: #6c757d !important;
+  color: white !important;
+  padding: 5px 12px !important;
+  margin: 0 4px !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  display: inline-block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
-.unmark-button:hover {
-  background-color: #5a6268;
+.unmark-button.active:hover {
+  background-color: #5a6268 !important;
+  transform: translateY(-1px);
+}
+
+.unmark-button.disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
 }
 
 .received-badge {
@@ -882,6 +908,7 @@ body {
     max-width: none;
   }
 }
+
 /* Additional styles for new fields */
 .text-input {
   width: 100%;
@@ -904,7 +931,7 @@ body {
   transition: background-color 0.3s ease;
 }
 
-/* Ensure table columns are properly sized */
+/* Ensure table columns are properly sized - NO EXPANDING ON HOVER */
 .checks-table th {
   white-space: nowrap;
 }
@@ -916,11 +943,12 @@ body {
   white-space: nowrap;
 }
 
-/* Hover to show full content */
+/* Remove hover expansion - cells will stay fixed */
 .checks-table td:hover {
-  white-space: normal;
-  word-break: break-word;
-  position: relative;
-  z-index: 10;
-  background-color: #fef9e6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: inherit;
+  position: static;
+  z-index: auto;
 }

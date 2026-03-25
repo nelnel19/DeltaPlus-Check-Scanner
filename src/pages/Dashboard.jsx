@@ -91,6 +91,13 @@ function Dashboard() {
     try {
       const response = await axios.get(`${API_URL}/api/checks`);
       setChecks(response.data);
+      // Debug: Log checks to see if is_received is true
+      console.log('Fetched checks:', response.data);
+      response.data.forEach(check => {
+        if (check.is_received) {
+          console.log(`Check ${check.id} is received:`, check);
+        }
+      });
     } catch (error) {
       console.error('Error fetching checks:', error);
       alert('Failed to load checks. Make sure backend is running.');
@@ -605,16 +612,16 @@ function Dashboard() {
                           <button onClick={() => handleDelete(check.id)} className="delete-button" title="Delete check">
                             Delete
                           </button>
-                          {/* Not Received button only appears for checks that are marked as received */}
-                          {check.is_received && (
-                            <button 
-                              onClick={() => handleMarkNotReceived(check.id)} 
-                              className="unmark-button"
-                              title="Mark as not received"
-                            >
-                              Not Received
-                            </button>
-                          )}
+                          {/* Not Received button - ALWAYS show but with different styling based on status */}
+                          <button 
+                            onClick={() => handleMarkNotReceived(check.id)} 
+                            className={`unmark-button ${check.is_received ? 'active' : 'disabled'}`}
+                            title={check.is_received ? "Mark as not received" : "Not received (already not received)"}
+                            style={!check.is_received ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                            disabled={!check.is_received}
+                          >
+                            Not Received
+                          </button>
                         </td>
                       </tr>
                     ))}
