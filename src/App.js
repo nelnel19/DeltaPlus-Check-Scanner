@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
 function App() {
+  // Check login status from localStorage
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
 
   return (
@@ -12,12 +13,14 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route 
           path="/dashboard" 
-          element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />} 
+          element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} 
         />
         <Route 
           path="/" 
-          element={<Navigate to="/login" />} 
+          element={<Navigate to="/login" replace />} 
         />
+        {/* Add a catch-all route to redirect to login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );

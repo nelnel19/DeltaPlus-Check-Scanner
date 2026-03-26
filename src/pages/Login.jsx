@@ -16,11 +16,13 @@ function Login() {
     if (username === 'deltaplusaccounting@gmail.com' && password === 'deltaplusaccounting') {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('full_name', 'Accounting Management');
-      navigate('/dashboard');
+      // Use navigate with replace to prevent going back to login
+      navigate('/dashboard', { replace: true });
     } else {
       alert('Invalid credentials. Please use the correct username and password.');
+      setLoading(false);
     }
-    setLoading(false);
+    // Don't set loading to false on success because we're navigating away
   };
 
   return (
