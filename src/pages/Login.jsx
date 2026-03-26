@@ -13,7 +13,7 @@ function Login() {
     setLoading(true);
     
     // Updated credentials
-    if (username === 'deltaplusaccounting@gmail.com' && password === 'deltaplusaccounting') {
+    if (username === 'deltaplusaccounting' && password === 'accounting') {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('full_name', 'Accounting Management');
       // Use navigate with replace to prevent going back to login
