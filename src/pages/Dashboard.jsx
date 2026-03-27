@@ -26,7 +26,9 @@ function Dashboard() {
     date: '',
     date_deposited: '',
     bank_deposited: '',
-    deposited_by: ''
+    deposited_by: '',
+    cr: '',
+    cr_date: ''
   });
   const [receivedModalOpen, setReceivedModalOpen] = useState(false);
   const [receivedCheckId, setReceivedCheckId] = useState(null);
@@ -291,7 +293,9 @@ function Dashboard() {
       date: check.date || '',
       date_deposited: check.date_deposited || '',
       bank_deposited: check.bank_deposited || '',
-      deposited_by: check.deposited_by || ''
+      deposited_by: check.deposited_by || '',
+      cr: check.cr || '',
+      cr_date: check.cr_date || ''
     });
     setEditModalOpen(true);
   };
@@ -385,11 +389,11 @@ function Dashboard() {
       'Pay To': check.pay_to_the_order_of || '',
       'Amount': check.amount || '',
       'Date': check.date || '',
+      'CR No.': check.cr || '',
+      'CR Date': check.cr_date || '',
       'Status': check.is_received ? 'Received' : 'Not Received',
       'Received Date': check.received_date || '',
       'Received By': check.received_by || '',
-      'CR No.': check.cr || '',
-      'CR Date': check.cr_date || '',
       'Date Deposited': check.date_deposited || '',
       'Bank Deposited': check.bank_deposited || '',
       'Deposited By': check.deposited_by || ''
@@ -583,11 +587,11 @@ function Dashboard() {
                       <th>Pay To</th>
                       <th>Amount</th>
                       <th>Date</th>
+                      <th>CR No.</th>
+                      <th>CR Date</th>
                       <th>Status</th>
                       <th>Received Date</th>
                       <th>Received By</th>
-                      <th>CR No.</th>
-                      <th>CR Date</th>
                       <th>Date Deposited</th>
                       <th>Bank Deposited</th>
                       <th>Deposited By</th>
@@ -617,6 +621,8 @@ function Dashboard() {
                         <td>{check.pay_to_the_order_of || '-'}</td>
                         <td className="amount">{check.amount || '-'}</td>
                         <td>{check.date || '-'}</td>
+                        <td>{check.cr || '-'}</td>
+                        <td>{check.cr_date || '-'}</td>
                         <td>
                           {check.is_received ? (
                             <span className="received-badge">Received</span>
@@ -631,8 +637,6 @@ function Dashboard() {
                         </td>
                         <td>{check.received_date || '-'}</td>
                         <td>{check.received_by || '-'}</td>
-                        <td>{check.cr || '-'}</td>
-                        <td>{check.cr_date || '-'}</td>
                         <td>{check.date_deposited || '-'}</td>
                         <td>{check.bank_deposited || '-'}</td>
                         <td>{check.deposited_by || '-'}</td>
@@ -716,7 +720,7 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Edit Modal - Without Received By field */}
+      {/* Edit Modal */}
       {editModalOpen && currentCheck && (
         <div className="modal-overlay" onClick={closeEditModal}>
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
@@ -756,6 +760,23 @@ function Dashboard() {
                   value={editFormData.date}
                   onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
                   placeholder="MM-DD-YYYY"
+                />
+              </div>
+              <div className="form-group">
+                <label>CR No.</label>
+                <input
+                  type="text"
+                  value={editFormData.cr}
+                  onChange={(e) => setEditFormData({ ...editFormData, cr: e.target.value })}
+                  placeholder="Enter CR number"
+                />
+              </div>
+              <div className="form-group">
+                <label>CR Date</label>
+                <input
+                  type="date"
+                  value={editFormData.cr_date}
+                  onChange={(e) => setEditFormData({ ...editFormData, cr_date: e.target.value })}
                 />
               </div>
               <div className="form-group">
