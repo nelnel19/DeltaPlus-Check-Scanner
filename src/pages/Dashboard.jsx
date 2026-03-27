@@ -163,7 +163,7 @@ function Dashboard() {
 
   useEffect(() => {
     if (!localStorage.getItem('isLoggedIn')) {
-      navigate('/login');
+      navigate('/');
       return;
     }
     

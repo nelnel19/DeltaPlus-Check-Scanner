@@ -10,17 +10,14 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        {/* Show Login component directly at root path */}
+        <Route path="/" element={<Login />} />
         <Route 
           path="/dashboard" 
-          element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} 
+          element={isLoggedIn ? <Dashboard /> : <Navigate to="/" replace />} 
         />
-        <Route 
-          path="/" 
-          element={<Navigate to="/login" replace />} 
-        />
-        {/* Add a catch-all route to redirect to login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Catch-all route redirects to root */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
