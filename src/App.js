@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
@@ -10,13 +10,11 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Show Login component directly at root path */}
         <Route path="/" element={<Login />} />
         <Route 
           path="/dashboard" 
           element={isLoggedIn ? <Dashboard /> : <Navigate to="/" replace />} 
         />
-        {/* Catch-all route redirects to root */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
