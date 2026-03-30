@@ -578,6 +578,7 @@ function Dashboard() {
                 <table className="checks-table">
                   <thead>
                     <tr>
+                      <th>Date of Scan</th>
                       <th>Image</th>
                       <th>Drivers Name</th>
                       <th>Bank Name</th>
@@ -595,13 +596,13 @@ function Dashboard() {
                       <th>Date Deposited</th>
                       <th>Bank Deposited</th>
                       <th>Deposited By</th>
-                      <th>Date of Scan</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredChecks.map((check) => (
                       <tr key={check._id} id={`check-row-${check._id}`}>
+                        <td>{formatDate(check.created_at)}</td>
                         <td>
                           {check.image_url ? (
                             <img 
@@ -640,7 +641,6 @@ function Dashboard() {
                         <td>{check.date_deposited || '-'}</td>
                         <td>{check.bank_deposited || '-'}</td>
                         <td>{check.deposited_by || '-'}</td>
-                        <td>{formatDate(check.created_at)}</td>
                         <td className="actions">
                           <button onClick={() => openEditModal(check)} className="edit-button" title="Edit check details">
                             Edit
