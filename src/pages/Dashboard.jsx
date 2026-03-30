@@ -13,6 +13,7 @@ function Dashboard() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [scanDate, setScanDate] = useState('');
   const [depositedDate, setDepositedDate] = useState('');
+  const [receivedDateFilter, setReceivedDateFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -146,6 +147,18 @@ function Dashboard() {
       });
     }
 
+    // Filter by received date
+    if (receivedDateFilter) {
+      const selectedReceivedDate = new Date(receivedDateFilter);
+      selectedReceivedDate.setHours(0, 0, 0, 0);
+      result = result.filter(check => {
+        if (!check.received_date) return false;
+        const checkReceivedDate = new Date(check.received_date);
+        checkReceivedDate.setHours(0, 0, 0, 0);
+        return checkReceivedDate.getTime() === selectedReceivedDate.getTime();
+      });
+    }
+
     setFilteredChecks(result);
   };
 
@@ -155,6 +168,10 @@ function Dashboard() {
 
   const clearDepositedDateFilter = () => {
     setDepositedDate('');
+  };
+
+  const clearReceivedDateFilter = () => {
+    setReceivedDateFilter('');
   };
 
   const refreshData = async () => {
@@ -264,7 +281,7 @@ function Dashboard() {
 
   useEffect(() => {
     applyFilters();
-  }, [filterStatus, scanDate, depositedDate, checks]);
+  }, [filterStatus, scanDate, depositedDate, receivedDateFilter, checks]);
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
@@ -382,6 +399,8 @@ function Dashboard() {
     }
 
     const exportData = filteredChecks.map(check => ({
+      'Date of Scan': formatDate(check.created_at),
+      'Drivers Name': check.user_full_name || '',
       'Bank Name': check.bank_name || '',
       'Account Name': check.account_name || '',
       'Account No.': check.account_no || '',
@@ -555,6 +574,23 @@ function Dashboard() {
                 />
                 {depositedDate && (
                   <button onClick={clearDepositedDateFilter} className="clear-date-button" title="Clear deposited date filter">
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <span className="filter-label">Received Date:</span>
+              <div className="date-filter-wrapper">
+                <input
+                  type="date"
+                  value={receivedDateFilter}
+                  onChange={(e) => setReceivedDateFilter(e.target.value)}
+                  className="date-input"
+                />
+                {receivedDateFilter && (
+                  <button onClick={clearReceivedDateFilter} className="clear-date-button" title="Clear received date filter">
                     ×
                   </button>
                 )}
