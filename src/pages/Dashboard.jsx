@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import '../styles/dashboard.css';
 
-const API_URL = 'https://delta-check-scanner-backend.onrender.com';
+const API_URL = 'https://delta-check-scanner-backend-x430.onrender.com';
 
 function Dashboard() {
   const [activeTab, setActiveTab] = useState('checks');
