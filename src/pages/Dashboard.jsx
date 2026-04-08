@@ -399,7 +399,7 @@ function Dashboard() {
     }
 
     const exportData = filteredChecks.map(check => ({
-      'Date of Scan': formatDate(check.created_at),
+      'Date of Scan': formatDateToMMDDYY(check.created_at),
       'Drivers Name': check.user_full_name || '',
       'Bank Name': check.bank_name || '',
       'Account Name': check.account_name || '',
@@ -411,7 +411,7 @@ function Dashboard() {
       'CR No.': check.cr || '',
       'CR Date': check.cr_date || '',
       'Status': check.is_received ? 'Received' : 'Not Received',
-      'Received Date': check.received_date || '',
+      'Received Date': check.received_date ? formatDateToMMDDYY(check.received_date) : '',
       'Received By': check.received_by || '',
       'Date Deposited': check.date_deposited || '',
       'Bank Deposited': check.bank_deposited || '',
@@ -457,15 +457,47 @@ function Dashboard() {
   };
 
   const totalChecks = filteredChecks.length;
+  
+  // Format date to MM/DD/YY
+  const formatDateToMMDDYY = (dateString) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    return `${month}/${day}/${year}`;
+  };
+
+  // Format date for display in tables (MM/DD/YY)
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    return `${month}/${day}/${year}`;
   };
 
+  // Format timestamp for notifications
   const formatTimestamp = (isoString) => {
     const date = new Date(isoString);
-    return date.toLocaleString('en-PH');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${month}/${day}/${year} ${hours}:${minutes}`;
+  };
+
+  // Get latest scan date in MM/DD/YY format
+  const getLatestScanDate = () => {
+    if (filteredChecks.length === 0) return '-';
+    const latest = filteredChecks.reduce((latest, check) => {
+      const checkDate = new Date(check.created_at);
+      const latestDate = new Date(latest.created_at);
+      return checkDate > latestDate ? check : latest;
+    }, filteredChecks[0]);
+    return formatDate(latest.created_at);
   };
 
   if (loading) return <div className="loading-state">Loading checks...</div>;
@@ -500,7 +532,7 @@ function Dashboard() {
           </div>
           <div className="stat-divider"></div>
           <div className="stat-item">
-            <span className="stat-value">{filteredChecks.length > 0 ? formatDate(filteredChecks[0].created_at) : '-'}</span>
+            <span className="stat-value">{getLatestScanDate()}</span>
             <span className="stat-label-compact">Latest Scan</span>
           </div>
         </div>
@@ -672,7 +704,7 @@ function Dashboard() {
                             </button>
                           )}
                         </td>
-                        <td>{check.received_date || '-'}</td>
+                        <td>{check.received_date ? formatDate(check.received_date) : '-'}</td>
                         <td>{check.received_by || '-'}</td>
                         <td>{check.date_deposited || '-'}</td>
                         <td>{check.bank_deposited || '-'}</td>
@@ -795,7 +827,7 @@ function Dashboard() {
                   type="text"
                   value={editFormData.date}
                   onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
-                  placeholder="MM-DD-YYYY"
+                  placeholder="MM/DD/YY"
                 />
               </div>
               <div className="form-group">
