@@ -407,13 +407,13 @@ function Dashboard() {
       'Check No.': check.check_no || '',
       'Pay To': check.pay_to_the_order_of || '',
       'Amount': check.amount || '',
-      'Date': check.date || '',
+      'Date': check.date ? formatDateToMMDDYY(check.date) : '',
       'CR No.': check.cr || '',
-      'CR Date': check.cr_date || '',
+      'CR Date': check.cr_date ? formatDateToMMDDYY(check.cr_date) : '',
       'Status': check.is_received ? 'Received' : 'Not Received',
       'Received Date': check.received_date ? formatDateToMMDDYY(check.received_date) : '',
       'Received By': check.received_by || '',
-      'Date Deposited': check.date_deposited || '',
+      'Date Deposited': check.date_deposited ? formatDateToMMDDYY(check.date_deposited) : '',
       'Bank Deposited': check.bank_deposited || '',
       'Deposited By': check.deposited_by || ''
     }));
@@ -458,10 +458,12 @@ function Dashboard() {
 
   const totalChecks = filteredChecks.length;
   
-  // Format date to MM/DD/YY
+  // Format any date string to MM/DD/YY
   const formatDateToMMDDYY = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) return '-';
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const year = String(date.getFullYear()).slice(-2);
@@ -470,12 +472,7 @@ function Dashboard() {
 
   // Format date for display in tables (MM/DD/YY)
   const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = String(date.getFullYear()).slice(-2);
-    return `${month}/${day}/${year}`;
+    return formatDateToMMDDYY(dateString);
   };
 
   // Format timestamp for notifications
@@ -689,9 +686,9 @@ function Dashboard() {
                         <td className="check-number">{check.check_no || '-'}</td>
                         <td>{check.pay_to_the_order_of || '-'}</td>
                         <td className="amount">{check.amount || '-'}</td>
-                        <td>{check.date || '-'}</td>
+                        <td>{formatDate(check.date)}</td>
                         <td>{check.cr || '-'}</td>
-                        <td>{check.cr_date || '-'}</td>
+                        <td>{formatDate(check.cr_date)}</td>
                         <td>
                           {check.is_received ? (
                             <span className="received-badge">Received</span>
@@ -704,9 +701,9 @@ function Dashboard() {
                             </button>
                           )}
                         </td>
-                        <td>{check.received_date ? formatDate(check.received_date) : '-'}</td>
+                        <td>{formatDate(check.received_date)}</td>
                         <td>{check.received_by || '-'}</td>
-                        <td>{check.date_deposited || '-'}</td>
+                        <td>{formatDate(check.date_deposited)}</td>
                         <td>{check.bank_deposited || '-'}</td>
                         <td>{check.deposited_by || '-'}</td>
                         <td className="actions">
@@ -842,9 +839,10 @@ function Dashboard() {
               <div className="form-group">
                 <label>CR Date</label>
                 <input
-                  type="date"
+                  type="text"
                   value={editFormData.cr_date}
                   onChange={(e) => setEditFormData({ ...editFormData, cr_date: e.target.value })}
+                  placeholder="MM/DD/YY"
                 />
               </div>
               <div className="form-group">
