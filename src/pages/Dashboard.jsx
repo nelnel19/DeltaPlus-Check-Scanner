@@ -645,7 +645,7 @@ function Dashboard() {
                     <tr>
                       <th>Date of Scan</th>
                       <th>Image</th>
-                      <th>Drivers Name</th>
+                      <th>Uploader</th>
                       <th>Bank Name</th>
                       <th>Account Name</th>
                       <th>Account No.</th>
