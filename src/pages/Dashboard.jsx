@@ -36,10 +36,10 @@ function Dashboard() {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
   
-  // Inline editing states - now with local values
-  const [localDateDeposited, setLocalDateDeposited] = useState({});
-  const [localBankDeposited, setLocalBankDeposited] = useState({});
-  const [localDepositedBy, setLocalDepositedBy] = useState({});
+  // Inline editing states - with temporary values
+  const [tempDateDeposited, setTempDateDeposited] = useState({});
+  const [tempBankDeposited, setTempBankDeposited] = useState({});
+  const [tempDepositedBy, setTempDepositedBy] = useState({});
   const [savingFields, setSavingFields] = useState({});
   
   const navigate = useNavigate();
@@ -102,7 +102,7 @@ function Dashboard() {
     try {
       const response = await axios.get(`${API_URL}/api/checks`);
       setChecks(response.data);
-      // Initialize local state with current values
+      // Initialize temp state with current values
       const dateDepositedMap = {};
       const bankDepositedMap = {};
       const depositedByMap = {};
@@ -111,9 +111,9 @@ function Dashboard() {
         bankDepositedMap[check._id] = check.bank_deposited || '';
         depositedByMap[check._id] = check.deposited_by || '';
       });
-      setLocalDateDeposited(dateDepositedMap);
-      setLocalBankDeposited(bankDepositedMap);
-      setLocalDepositedBy(depositedByMap);
+      setTempDateDeposited(dateDepositedMap);
+      setTempBankDeposited(bankDepositedMap);
+      setTempDepositedBy(depositedByMap);
     } catch (error) {
       console.error('Error fetching checks:', error);
       alert('Failed to load checks. Make sure backend is running.');
@@ -201,12 +201,9 @@ function Dashboard() {
     
     refreshData();
     
-    const intervalId = setInterval(() => {
-      refreshData();
-    }, 10000);
+    // REMOVED auto-refresh interval
     
     return () => {
-      clearInterval(intervalId);
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
@@ -314,63 +311,83 @@ function Dashboard() {
     }
   };
 
-  // Save date deposited
-  const saveDateDeposited = async (checkId, value) => {
+  // Save date deposited - only on Enter key
+  const saveDateDeposited = async (checkId) => {
+    const value = tempDateDeposited[checkId];
     setSavingFields(prev => ({ ...prev, [checkId]: true }));
     try {
       await axios.put(`${API_URL}/api/checks/${checkId}`, { date_deposited: value });
-      setLocalDateDeposited(prev => ({ ...prev, [checkId]: value }));
+      // Update the checks state to reflect the saved value
+      setChecks(prevChecks => prevChecks.map(check => 
+        check._id === checkId ? { ...check, date_deposited: value } : check
+      ));
       showToast('Date deposited updated successfully', 'success');
     } catch (error) {
       console.error('Update error:', error);
       showToast('Failed to update date deposited', 'error');
       // Revert on error
       const originalCheck = checks.find(c => c._id === checkId);
-      setLocalDateDeposited(prev => ({ ...prev, [checkId]: originalCheck?.date_deposited || '' }));
+      setTempDateDeposited(prev => ({ ...prev, [checkId]: originalCheck?.date_deposited || '' }));
     } finally {
       setSavingFields(prev => ({ ...prev, [checkId]: false }));
     }
   };
 
-  // Save bank deposited
-  const saveBankDeposited = async (checkId, value) => {
+  // Save bank deposited - only on Enter key
+  const saveBankDeposited = async (checkId) => {
+    const value = tempBankDeposited[checkId];
     setSavingFields(prev => ({ ...prev, [checkId]: true }));
     try {
       await axios.put(`${API_URL}/api/checks/${checkId}`, { bank_deposited: value });
-      setLocalBankDeposited(prev => ({ ...prev, [checkId]: value }));
+      // Update the checks state to reflect the saved value
+      setChecks(prevChecks => prevChecks.map(check => 
+        check._id === checkId ? { ...check, bank_deposited: value } : check
+      ));
       showToast('Bank deposited updated successfully', 'success');
     } catch (error) {
       console.error('Update error:', error);
       showToast('Failed to update bank deposited', 'error');
+      // Revert on error
       const originalCheck = checks.find(c => c._id === checkId);
-      setLocalBankDeposited(prev => ({ ...prev, [checkId]: originalCheck?.bank_deposited || '' }));
+      setTempBankDeposited(prev => ({ ...prev, [checkId]: originalCheck?.bank_deposited || '' }));
     } finally {
       setSavingFields(prev => ({ ...prev, [checkId]: false }));
     }
   };
 
-  // Save deposited by
-  const saveDepositedBy = async (checkId, value) => {
+  // Save deposited by - only on Enter key
+  const saveDepositedBy = async (checkId) => {
+    const value = tempDepositedBy[checkId];
     setSavingFields(prev => ({ ...prev, [checkId]: true }));
     try {
       await axios.put(`${API_URL}/api/checks/${checkId}`, { deposited_by: value });
-      setLocalDepositedBy(prev => ({ ...prev, [checkId]: value }));
+      // Update the checks state to reflect the saved value
+      setChecks(prevChecks => prevChecks.map(check => 
+        check._id === checkId ? { ...check, deposited_by: value } : check
+      ));
       showToast('Deposited by updated successfully', 'success');
     } catch (error) {
       console.error('Update error:', error);
       showToast('Failed to update deposited by', 'error');
+      // Revert on error
       const originalCheck = checks.find(c => c._id === checkId);
-      setLocalDepositedBy(prev => ({ ...prev, [checkId]: originalCheck?.deposited_by || '' }));
+      setTempDepositedBy(prev => ({ ...prev, [checkId]: originalCheck?.deposited_by || '' }));
     } finally {
       setSavingFields(prev => ({ ...prev, [checkId]: false }));
     }
   };
 
-  // Handle enter key press
-  const handleKeyPress = (e, checkId, field, value, saveFunction) => {
+  // Handle key press (Enter to save)
+  const handleKeyPress = (e, checkId, field) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      saveFunction(checkId, value);
+      if (field === 'date_deposited') {
+        saveDateDeposited(checkId);
+      } else if (field === 'bank_deposited') {
+        saveBankDeposited(checkId);
+      } else if (field === 'deposited_by') {
+        saveDepositedBy(checkId);
+      }
       inputRefs.current[`${field}-${checkId}`]?.blur();
     }
   };
@@ -486,9 +503,9 @@ function Dashboard() {
       'Status': check.is_received ? 'Received' : 'Not Received',
       'Received Date': check.received_date ? formatDateToMMDDYY(check.received_date) : '',
       'Received By': check.received_by || '',
-      'Date Deposited': localDateDeposited[check._id] ? formatDateToMMDDYY(localDateDeposited[check._id]) : '',
-      'Bank Deposited': localBankDeposited[check._id] || '',
-      'Deposited By': localDepositedBy[check._id] || ''
+      'Date Deposited': tempDateDeposited[check._id] ? formatDateToMMDDYY(tempDateDeposited[check._id]) : '',
+      'Bank Deposited': tempBankDeposited[check._id] || '',
+      'Deposited By': tempDepositedBy[check._id] || ''
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -783,13 +800,14 @@ function Dashboard() {
                         <td>{check.received_by || '-'}</td>
                         <td className="editable-cell-container">
                           <input
+                            ref={el => inputRefs.current[`date_deposited-${check._id}`] = el}
                             type="date"
-                            value={formatDateForInput(localDateDeposited[check._id] || '')}
+                            value={formatDateForInput(tempDateDeposited[check._id] || '')}
                             onChange={(e) => {
                               const newValue = e.target.value;
-                              setLocalDateDeposited(prev => ({ ...prev, [check._id]: newValue }));
-                              saveDateDeposited(check._id, newValue);
+                              setTempDateDeposited(prev => ({ ...prev, [check._id]: newValue }));
                             }}
+                            onKeyPress={(e) => handleKeyPress(e, check._id, 'date_deposited')}
                             className="inline-date-input"
                             placeholder="Select date"
                           />
@@ -797,28 +815,28 @@ function Dashboard() {
                         </td>
                         <td className="editable-cell-container">
                           <input
+                            ref={el => inputRefs.current[`bank_deposited-${check._id}`] = el}
                             type="text"
-                            value={localBankDeposited[check._id] || ''}
+                            value={tempBankDeposited[check._id] || ''}
                             onChange={(e) => {
                               const newValue = e.target.value;
-                              setLocalBankDeposited(prev => ({ ...prev, [check._id]: newValue }));
-                              saveBankDeposited(check._id, newValue);
+                              setTempBankDeposited(prev => ({ ...prev, [check._id]: newValue }));
                             }}
-                            onKeyPress={(e) => handleKeyPress(e, check._id, 'bank_deposited', e.target.value, saveBankDeposited)}
+                            onKeyPress={(e) => handleKeyPress(e, check._id, 'bank_deposited')}
                             className="inline-text-input"
                             placeholder="Enter bank name"
                           />
                         </td>
                         <td className="editable-cell-container">
                           <input
+                            ref={el => inputRefs.current[`deposited_by-${check._id}`] = el}
                             type="text"
-                            value={localDepositedBy[check._id] || ''}
+                            value={tempDepositedBy[check._id] || ''}
                             onChange={(e) => {
                               const newValue = e.target.value;
-                              setLocalDepositedBy(prev => ({ ...prev, [check._id]: newValue }));
-                              saveDepositedBy(check._id, newValue);
+                              setTempDepositedBy(prev => ({ ...prev, [check._id]: newValue }));
                             }}
-                            onKeyPress={(e) => handleKeyPress(e, check._id, 'deposited_by', e.target.value, saveDepositedBy)}
+                            onKeyPress={(e) => handleKeyPress(e, check._id, 'deposited_by')}
                             className="inline-text-input"
                             placeholder="Enter name"
                           />
