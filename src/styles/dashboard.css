@@ -1036,3 +1036,52 @@ body {
     min-width: 130px;
   }
 }
+/* Inline Editing Styles */
+.editable-cell-container {
+  cursor: pointer;
+}
+
+.editable-cell {
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.editable-cell:hover {
+  background-color: rgba(245, 196, 0, 0.2);
+  border: 1px dashed #F5C400;
+}
+
+.inline-text-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 2px solid #F5C400;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: inherit;
+  background-color: white;
+  outline: none;
+}
+
+.inline-text-input:focus {
+  border-color: #F5C400;
+  box-shadow: 0 0 0 2px rgba(245, 196, 0, 0.2);
+}
+
+.inline-date-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 2px solid #F5C400;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: inherit;
+  background-color: white;
+  outline: none;
+}
+
+.inline-date-input:focus {
+  border-color: #F5C400;
+  box-shadow: 0 0 0 2px rgba(245, 196, 0, 0.2);
+}

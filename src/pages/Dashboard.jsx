@@ -38,9 +38,15 @@ function Dashboard() {
   const [receivedBy, setReceivedBy] = useState('');
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
+  
+  // Inline editing states
+  const [editingCell, setEditingCell] = useState({ checkId: null, field: null });
+  const [editingValue, setEditingValue] = useState('');
+  
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef(null);
   const eventSourceRef = useRef(null);
+  const inputRef = useRef(null);
 
   const showToast = (message, type = 'info') => {
     setToast({ message, visible: true, type });
@@ -118,14 +124,12 @@ function Dashboard() {
   const applyFilters = () => {
     let result = [...checks];
 
-    // Filter by received status
     if (filterStatus === 'received') {
       result = result.filter(check => check.is_received === true);
     } else if (filterStatus === 'not_received') {
       result = result.filter(check => check.is_received === false);
     }
 
-    // Filter by scan date
     if (scanDate) {
       const selectedDate = new Date(scanDate);
       selectedDate.setHours(0, 0, 0, 0);
@@ -136,7 +140,6 @@ function Dashboard() {
       });
     }
 
-    // Filter by deposited date
     if (depositedDate) {
       const selectedDepositedDate = new Date(depositedDate);
       selectedDepositedDate.setHours(0, 0, 0, 0);
@@ -148,7 +151,6 @@ function Dashboard() {
       });
     }
 
-    // Filter by received date
     if (receivedDateFilter) {
       const selectedReceivedDate = new Date(receivedDateFilter);
       selectedReceivedDate.setHours(0, 0, 0, 0);
@@ -284,6 +286,13 @@ function Dashboard() {
     applyFilters();
   }, [filterStatus, scanDate, depositedDate, receivedDateFilter, checks]);
 
+  // Focus input when editing starts
+  useEffect(() => {
+    if (editingCell.checkId && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [editingCell]);
+
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('full_name');
@@ -300,6 +309,81 @@ function Dashboard() {
       console.error('Delete error:', error);
       alert('Failed to delete check');
     }
+  };
+
+  // Start inline editing
+  const startEditing = (checkId, field, currentValue) => {
+    setEditingCell({ checkId, field });
+    setEditingValue(currentValue || '');
+  };
+
+  // Save inline edit
+  const saveInlineEdit = async (checkId, field) => {
+    if (editingValue === undefined) return;
+    
+    try {
+      const updateData = { [field]: editingValue };
+      await axios.put(`${API_URL}/api/checks/${checkId}`, updateData);
+      await refreshData();
+      showToast(`${field.replace(/_/g, ' ')} updated successfully`, 'success');
+    } catch (error) {
+      console.error('Update error:', error);
+      showToast('Failed to update', 'error');
+    } finally {
+      setEditingCell({ checkId: null, field: null });
+      setEditingValue('');
+    }
+  };
+
+  // Handle key press (Enter to save, Escape to cancel)
+  const handleKeyDown = (e, checkId, field) => {
+    if (e.key === 'Enter') {
+      saveInlineEdit(checkId, field);
+    } else if (e.key === 'Escape') {
+      setEditingCell({ checkId: null, field: null });
+      setEditingValue('');
+    }
+  };
+
+  // Render editable cell
+  const renderEditableCell = (check, field, displayValue, isDate = false) => {
+    if (editingCell.checkId === check._id && editingCell.field === field) {
+      if (isDate) {
+        return (
+          <input
+            ref={inputRef}
+            type="date"
+            value={editingValue}
+            onChange={(e) => setEditingValue(e.target.value)}
+            onBlur={() => saveInlineEdit(check._id, field)}
+            onKeyDown={(e) => handleKeyDown(e, check._id, field)}
+            className="inline-date-input"
+          />
+        );
+      }
+      return (
+        <input
+          ref={inputRef}
+          type="text"
+          value={editingValue}
+          onChange={(e) => setEditingValue(e.target.value)}
+          onBlur={() => saveInlineEdit(check._id, field)}
+          onKeyDown={(e) => handleKeyDown(e, check._id, field)}
+          className="inline-text-input"
+          placeholder={`Enter ${field.replace(/_/g, ' ')}`}
+        />
+      );
+    }
+    
+    return (
+      <div 
+        className="editable-cell"
+        onDoubleClick={() => startEditing(check._id, field, displayValue === '-' ? '' : displayValue)}
+        title="Double-click to edit"
+      >
+        {displayValue}
+      </div>
+    );
   };
 
   const openEditModal = (check) => {
@@ -461,11 +545,9 @@ function Dashboard() {
 
   const totalChecks = filteredChecks.length;
   
-  // Format any date string to MM/DD/YY
   const formatDateToMMDDYY = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    // Check if date is valid
     if (isNaN(date.getTime())) return '-';
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -473,12 +555,10 @@ function Dashboard() {
     return `${month}/${day}/${year}`;
   };
 
-  // Format date for display in tables (MM/DD/YY)
   const formatDate = (dateString) => {
     return formatDateToMMDDYY(dateString);
   };
 
-  // Format timestamp for notifications
   const formatTimestamp = (isoString) => {
     const date = new Date(isoString);
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -489,7 +569,6 @@ function Dashboard() {
     return `${month}/${day}/${year} ${hours}:${minutes}`;
   };
 
-  // Get latest scan date in MM/DD/YY format
   const getLatestScanDate = () => {
     if (filteredChecks.length === 0) return '-';
     const latest = filteredChecks.reduce((latest, check) => {
@@ -708,9 +787,15 @@ function Dashboard() {
                         </td>
                         <td>{formatDate(check.received_date)}</td>
                         <td>{check.received_by || '-'}</td>
-                        <td>{formatDate(check.date_deposited)}</td>
-                        <td>{check.bank_deposited || '-'}</td>
-                        <td>{check.deposited_by || '-'}</td>
+                        <td className="editable-cell-container">
+                          {renderEditableCell(check, 'date_deposited', formatDate(check.date_deposited), true)}
+                        </td>
+                        <td className="editable-cell-container">
+                          {renderEditableCell(check, 'bank_deposited', check.bank_deposited || '-', false)}
+                        </td>
+                        <td className="editable-cell-container">
+                          {renderEditableCell(check, 'deposited_by', check.deposited_by || '-', false)}
+                        </td>
                         <td className="actions">
                           <button onClick={() => openEditModal(check)} className="edit-button" title="Edit check details">
                             Edit
