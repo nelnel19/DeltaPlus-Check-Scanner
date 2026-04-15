@@ -1036,9 +1036,21 @@ body {
     min-width: 130px;
   }
 }
-/* Inline Editing Styles */
+/* Inline Editing Styles - Professional Look */
 .editable-cell-container {
+  position: relative;
   cursor: pointer;
+}
+
+.editable-cell-wrapper {
+  position: relative;
+  min-height: 32px;
+  transition: all 0.2s ease;
+}
+
+.editable-cell-wrapper.hovered {
+  background-color: rgba(245, 196, 0, 0.1);
+  border-radius: 6px;
 }
 
 .editable-cell {
@@ -1046,42 +1058,132 @@ body {
   border-radius: 4px;
   transition: all 0.2s ease;
   cursor: pointer;
-  min-height: 28px;
 }
 
-.editable-cell:hover {
-  background-color: rgba(245, 196, 0, 0.2);
-  border: 1px dashed #F5C400;
+.editable-cell-wrapper.hovered .editable-cell {
+  background-color: #fff9e6;
+  border: 1px solid #F5C400;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.edit-hint {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  background: #0A2A43;
+  color: #F5C400;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  animation: fadeInUp 0.2s ease;
+  pointer-events: none;
+}
+
+.edit-hint-icon {
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.edit-hint-text {
+  font-size: 10px;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .inline-text-input {
   width: 100%;
-  padding: 4px 8px;
+  padding: 6px 8px;
   border: 2px solid #F5C400;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 12px;
   font-family: inherit;
   background-color: white;
   outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .inline-text-input:focus {
   border-color: #F5C400;
-  box-shadow: 0 0 0 2px rgba(245, 196, 0, 0.2);
+  box-shadow: 0 0 0 3px rgba(245, 196, 0, 0.2);
 }
 
 .inline-date-input {
   width: 100%;
-  padding: 4px 8px;
+  padding: 6px 8px;
   border: 2px solid #F5C400;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 12px;
   font-family: inherit;
   background-color: white;
   outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .inline-date-input:focus {
   border-color: #F5C400;
-  box-shadow: 0 0 0 2px rgba(245, 196, 0, 0.2);
+  box-shadow: 0 0 0 3px rgba(245, 196, 0, 0.2);
+}
+
+/* Image cell styling */
+.image-cell {
+  text-align: center;
+}
+
+/* Status cell styling */
+.status-cell {
+  white-space: nowrap;
+}
+
+/* Add a visual indicator for editable columns */
+.checks-table th:nth-child(17),
+.checks-table th:nth-child(18),
+.checks-table th:nth-child(19) {
+  position: relative;
+}
+
+.checks-table th:nth-child(17)::after,
+.checks-table th:nth-child(18)::after,
+.checks-table th:nth-child(19)::after {
+  content: "✎";
+  font-size: 10px;
+  margin-left: 6px;
+  opacity: 0.6;
+  font-weight: normal;
+}
+
+/* Tooltip for editable columns hint */
+.checks-table th:nth-child(17):hover::before,
+.checks-table th:nth-child(18):hover::before,
+.checks-table th:nth-child(19):hover::before {
+  content: "Double-click to edit";
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0A2A43;
+  color: #F5C400;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
 }

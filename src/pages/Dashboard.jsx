@@ -25,9 +25,6 @@ function Dashboard() {
     pay_to_the_order_of: '',
     amount: '',
     date: '',
-    date_deposited: '',
-    bank_deposited: '',
-    deposited_by: '',
     cr: '',
     cr_date: '',
     invoice_no: ''
@@ -42,6 +39,7 @@ function Dashboard() {
   // Inline editing states
   const [editingCell, setEditingCell] = useState({ checkId: null, field: null });
   const [editingValue, setEditingValue] = useState('');
+  const [hoveredCell, setHoveredCell] = useState({ checkId: null, field: null });
   
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef(null);
@@ -314,7 +312,7 @@ function Dashboard() {
   // Start inline editing
   const startEditing = (checkId, field, currentValue) => {
     setEditingCell({ checkId, field });
-    setEditingValue(currentValue || '');
+    setEditingValue(currentValue === '-' ? '' : currentValue);
   };
 
   // Save inline edit
@@ -346,42 +344,58 @@ function Dashboard() {
   };
 
   // Render editable cell
-  const renderEditableCell = (check, field, displayValue, isDate = false) => {
-    if (editingCell.checkId === check._id && editingCell.field === field) {
+  const renderEditableCell = (check, field, displayValue, isDate = false, label = '') => {
+    const isHovered = hoveredCell.checkId === check._id && hoveredCell.field === field;
+    const isEditing = editingCell.checkId === check._id && editingCell.field === field;
+    
+    if (isEditing) {
       if (isDate) {
         return (
+          <div className="editable-cell-wrapper editing">
+            <input
+              ref={inputRef}
+              type="date"
+              value={editingValue}
+              onChange={(e) => setEditingValue(e.target.value)}
+              onBlur={() => saveInlineEdit(check._id, field)}
+              onKeyDown={(e) => handleKeyDown(e, check._id, field)}
+              className="inline-date-input"
+            />
+          </div>
+        );
+      }
+      return (
+        <div className="editable-cell-wrapper editing">
           <input
             ref={inputRef}
-            type="date"
+            type="text"
             value={editingValue}
             onChange={(e) => setEditingValue(e.target.value)}
             onBlur={() => saveInlineEdit(check._id, field)}
             onKeyDown={(e) => handleKeyDown(e, check._id, field)}
-            className="inline-date-input"
+            className="inline-text-input"
+            placeholder={`Enter ${label}`}
           />
-        );
-      }
-      return (
-        <input
-          ref={inputRef}
-          type="text"
-          value={editingValue}
-          onChange={(e) => setEditingValue(e.target.value)}
-          onBlur={() => saveInlineEdit(check._id, field)}
-          onKeyDown={(e) => handleKeyDown(e, check._id, field)}
-          className="inline-text-input"
-          placeholder={`Enter ${field.replace(/_/g, ' ')}`}
-        />
+        </div>
       );
     }
     
     return (
       <div 
-        className="editable-cell"
-        onDoubleClick={() => startEditing(check._id, field, displayValue === '-' ? '' : displayValue)}
-        title="Double-click to edit"
+        className={`editable-cell-wrapper ${isHovered ? 'hovered' : ''}`}
+        onMouseEnter={() => setHoveredCell({ checkId: check._id, field })}
+        onMouseLeave={() => setHoveredCell({ checkId: null, field: null })}
+        onDoubleClick={() => startEditing(check._id, field, displayValue)}
       >
-        {displayValue}
+        <div className="editable-cell">
+          {displayValue}
+        </div>
+        {isHovered && (
+          <div className="edit-hint">
+            <span className="edit-hint-icon">✎</span>
+            <span className="edit-hint-text">Double-click to edit {label}</span>
+          </div>
+        )}
       </div>
     );
   };
@@ -393,9 +407,6 @@ function Dashboard() {
       pay_to_the_order_of: check.pay_to_the_order_of || '',
       amount: check.amount || '',
       date: check.date || '',
-      date_deposited: check.date_deposited || '',
-      bank_deposited: check.bank_deposited || '',
-      deposited_by: check.deposited_by || '',
       cr: check.cr || '',
       cr_date: check.cr_date || '',
       invoice_no: check.invoice_no || ''
@@ -751,7 +762,7 @@ function Dashboard() {
                     {filteredChecks.map((check) => (
                       <tr key={check._id} id={`check-row-${check._id}`}>
                         <td>{formatDate(check.created_at)}</td>
-                        <td>
+                        <td className="image-cell">
                           {check.image_url ? (
                             <img 
                               src={check.image_url} 
@@ -773,7 +784,7 @@ function Dashboard() {
                         <td>{check.cr || '-'}</td>
                         <td>{formatDate(check.cr_date)}</td>
                         <td>{check.invoice_no || '-'}</td>
-                        <td>
+                        <td className="status-cell">
                           {check.is_received ? (
                             <span className="received-badge">Received</span>
                           ) : (
@@ -788,13 +799,13 @@ function Dashboard() {
                         <td>{formatDate(check.received_date)}</td>
                         <td>{check.received_by || '-'}</td>
                         <td className="editable-cell-container">
-                          {renderEditableCell(check, 'date_deposited', formatDate(check.date_deposited), true)}
+                          {renderEditableCell(check, 'date_deposited', formatDate(check.date_deposited), true, 'Date Deposited')}
                         </td>
                         <td className="editable-cell-container">
-                          {renderEditableCell(check, 'bank_deposited', check.bank_deposited || '-', false)}
+                          {renderEditableCell(check, 'bank_deposited', check.bank_deposited || '-', false, 'Bank Deposited')}
                         </td>
                         <td className="editable-cell-container">
-                          {renderEditableCell(check, 'deposited_by', check.deposited_by || '-', false)}
+                          {renderEditableCell(check, 'deposited_by', check.deposited_by || '-', false, 'Deposited By')}
                         </td>
                         <td className="actions">
                           <button onClick={() => openEditModal(check)} className="edit-button" title="Edit check details">
@@ -875,7 +886,7 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Modal - Removed Date Deposited, Bank Deposited, Deposited By */}
       {editModalOpen && currentCheck && (
         <div className="modal-overlay" onClick={closeEditModal}>
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
@@ -942,32 +953,6 @@ function Dashboard() {
                   value={editFormData.invoice_no}
                   onChange={(e) => setEditFormData({ ...editFormData, invoice_no: e.target.value })}
                   placeholder="Enter invoice number"
-                />
-              </div>
-              <div className="form-group">
-                <label>Date Deposited</label>
-                <input
-                  type="date"
-                  value={editFormData.date_deposited}
-                  onChange={(e) => setEditFormData({ ...editFormData, date_deposited: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Bank Deposited</label>
-                <input
-                  type="text"
-                  value={editFormData.bank_deposited}
-                  onChange={(e) => setEditFormData({ ...editFormData, bank_deposited: e.target.value })}
-                  placeholder="Enter bank name"
-                />
-              </div>
-              <div className="form-group">
-                <label>Deposited By</label>
-                <input
-                  type="text"
-                  value={editFormData.deposited_by}
-                  onChange={(e) => setEditFormData({ ...editFormData, deposited_by: e.target.value })}
-                  placeholder="Who deposited this check?"
                 />
               </div>
               <div className="modal-buttons">
