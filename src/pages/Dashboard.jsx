@@ -29,7 +29,8 @@ function Dashboard() {
     bank_deposited: '',
     deposited_by: '',
     cr: '',
-    cr_date: ''
+    cr_date: '',
+    invoice_no: ''
   });
   const [receivedModalOpen, setReceivedModalOpen] = useState(false);
   const [receivedCheckId, setReceivedCheckId] = useState(null);
@@ -312,7 +313,8 @@ function Dashboard() {
       bank_deposited: check.bank_deposited || '',
       deposited_by: check.deposited_by || '',
       cr: check.cr || '',
-      cr_date: check.cr_date || ''
+      cr_date: check.cr_date || '',
+      invoice_no: check.invoice_no || ''
     });
     setEditModalOpen(true);
   };
@@ -410,6 +412,7 @@ function Dashboard() {
       'Date': check.date ? formatDateToMMDDYY(check.date) : '',
       'CR No.': check.cr || '',
       'CR Date': check.cr_date ? formatDateToMMDDYY(check.cr_date) : '',
+      'Invoice No.': check.invoice_no || '',
       'Status': check.is_received ? 'Received' : 'Not Received',
       'Received Date': check.received_date ? formatDateToMMDDYY(check.received_date) : '',
       'Received By': check.received_by || '',
@@ -655,6 +658,7 @@ function Dashboard() {
                       <th>Date</th>
                       <th>CR No.</th>
                       <th>CR Date</th>
+                      <th>Invoice No.</th>
                       <th>Status</th>
                       <th>Received Date</th>
                       <th>Received By</th>
@@ -689,6 +693,7 @@ function Dashboard() {
                         <td>{formatDate(check.date)}</td>
                         <td>{check.cr || '-'}</td>
                         <td>{formatDate(check.cr_date)}</td>
+                        <td>{check.invoice_no || '-'}</td>
                         <td>
                           {check.is_received ? (
                             <span className="received-badge">Received</span>
@@ -843,6 +848,15 @@ function Dashboard() {
                   value={editFormData.cr_date}
                   onChange={(e) => setEditFormData({ ...editFormData, cr_date: e.target.value })}
                   placeholder="MM/DD/YY"
+                />
+              </div>
+              <div className="form-group">
+                <label>Invoice No.</label>
+                <input
+                  type="text"
+                  value={editFormData.invoice_no}
+                  onChange={(e) => setEditFormData({ ...editFormData, invoice_no: e.target.value })}
+                  placeholder="Enter invoice number"
                 />
               </div>
               <div className="form-group">
