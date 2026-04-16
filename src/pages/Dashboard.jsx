@@ -27,7 +27,9 @@ function Dashboard() {
     date: '',
     cr: '',
     cr_date: '',
-    invoice_no: ''
+    invoice_no: '',
+    account_no: '',    // ADDED
+    check_no: ''       // ADDED
   });
   const [receivedModalOpen, setReceivedModalOpen] = useState(false);
   const [receivedCheckId, setReceivedCheckId] = useState(null);
@@ -401,7 +403,9 @@ function Dashboard() {
       date: check.date || '',
       cr: check.cr || '',
       cr_date: check.cr_date || '',
-      invoice_no: check.invoice_no || ''
+      invoice_no: check.invoice_no || '',
+      account_no: check.account_no || '',  // ADDED
+      check_no: check.check_no || ''       // ADDED
     });
     setEditModalOpen(true);
   };
@@ -920,7 +924,7 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Edit Modal - Removed Date Deposited, Bank Deposited, Deposited By */}
+      {/* Edit Modal - UPDATED with Account No. and Check No. */}
       {editModalOpen && currentCheck && (
         <div className="modal-overlay" onClick={closeEditModal}>
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
@@ -933,6 +937,24 @@ function Dashboard() {
                   value={editFormData.account_name}
                   onChange={(e) => setEditFormData({ ...editFormData, account_name: e.target.value })}
                   placeholder="Enter account name"
+                />
+              </div>
+              <div className="form-group">
+                <label>Account No.</label>  {/* ADDED */}
+                <input
+                  type="text"
+                  value={editFormData.account_no}
+                  onChange={(e) => setEditFormData({ ...editFormData, account_no: e.target.value })}
+                  placeholder="Enter account number"
+                />
+              </div>
+              <div className="form-group">
+                <label>Check No.</label>  {/* ADDED */}
+                <input
+                  type="text"
+                  value={editFormData.check_no}
+                  onChange={(e) => setEditFormData({ ...editFormData, check_no: e.target.value })}
+                  placeholder="Enter check number"
                 />
               </div>
               <div className="form-group">
