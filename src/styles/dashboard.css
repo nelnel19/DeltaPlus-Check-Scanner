@@ -1240,3 +1240,91 @@ body {
     padding: 6px;
   }
 }
+/* Account Name Filter Styles */
+.account-filter-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  padding: 3px 10px;
+  border-radius: 40px;
+}
+
+.account-name-input {
+  padding: 4px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 30px;
+  font-size: 12px;
+  background: white;
+  font-family: inherit;
+  width: 180px;
+  transition: all 0.2s ease;
+}
+
+.account-name-input:focus {
+  outline: none;
+  border-color: #F5C400;
+  box-shadow: 0 0 0 2px rgba(245, 196, 0, 0.1);
+}
+
+.account-name-input::placeholder {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.clear-filter-button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 3px;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.clear-filter-button:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+/* Account Name Cell Styling */
+.account-name-cell {
+  font-weight: 500;
+  color: #2c3e50;
+  background-color: rgba(245, 196, 0, 0.03);
+}
+
+/* Responsive adjustments for account name filter */
+@media (max-width: 768px) {
+  .account-name-input {
+    width: 140px;
+    font-size: 11px;
+  }
+  
+  .filter-group {
+    flex-wrap: wrap;
+  }
+  
+  .account-filter-wrapper {
+    flex: 1;
+    min-width: 140px;
+  }
+  
+  .account-name-input {
+    flex: 1;
+    width: auto;
+  }
+}
+
+/* Optional: Add highlight effect for filtered account names */
+.account-name-cell.highlight-match {
+  background-color: rgba(245, 196, 0, 0.15);
+  font-weight: 600;
+}
