@@ -146,6 +146,23 @@ body {
   background: #e2e8f0;
 }
 
+/* Selected Check in Stats */
+.selected-check {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: #fef9e6;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-left: 8px;
+}
+
+.selected-check-number {
+  font-size: 16px;
+  font-weight: 700;
+  color: #F5C400;
+}
+
 /* Tabs - More Compact */
 .tabs {
   display: flex;
@@ -172,6 +189,81 @@ body {
 
 .tab-button:hover:not(.active) {
   background: #f1f5f9;
+}
+
+/* Action Bar Styles - Professional Buttons No Icons */
+.action-bar {
+  background: white;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.action-btn {
+  padding: 8px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.action-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  filter: brightness(0.95);
+}
+
+.edit-btn {
+  background-color: #F5C400;
+  color: #0A2A43;
+}
+
+.delete-btn {
+  background-color: #ef4444;
+  color: white;
+}
+
+.unreceive-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.selection-hint {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.selected-info {
+  color: #10B981;
+  font-weight: 500;
+  background: #f0fdf4;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.hint-text {
+  color: #64748b;
 }
 
 /* Filter Section - More Compact */
@@ -309,6 +401,29 @@ body {
   border-radius: 8px;
   overflow-x: auto;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+/* Drag Scroll Styles */
+.drag-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  user-select: none;
+  scroll-behavior: smooth;
+}
+
+.drag-scroll:active {
+  cursor: grabbing !important;
+}
+
+/* Scroll Hint */
+.scroll-hint {
+  text-align: center;
+  padding: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
 }
 
 /* Compact Table */
@@ -345,10 +460,21 @@ body {
 /* Row Styling */
 .checks-table tbody tr {
   transition: background-color 0.2s ease;
+  cursor: pointer;
 }
 
 .checks-table tbody tr:hover {
-  background-color: #fef9e6;
+  background-color: #f8fafc;
+}
+
+/* Selected Row Highlight */
+.checks-table tbody tr.selected-row {
+  background-color: rgba(245, 196, 0, 0.12) !important;
+  border-left: 3px solid #F5C400;
+}
+
+.checks-table tbody tr.selected-row:hover {
+  background-color: rgba(245, 196, 0, 0.18) !important;
 }
 
 /* Cell Styling - More Compact */
@@ -371,6 +497,36 @@ body {
   font-weight: 700;
   color: #10B981;
   font-size: 12px;
+}
+
+/* Radio Button / Selection Styles */
+.radio-cell {
+  text-align: center;
+  width: 30px;
+}
+
+.custom-radio {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.custom-radio.selected {
+  border-color: #F5C400;
+  background-color: #F5C400;
+}
+
+.radio-check {
+  color: #0A2A43;
+  font-size: 11px;
+  font-weight: bold;
 }
 
 /* Thumbnail Images - Smaller */
@@ -420,61 +576,90 @@ body {
   transform: translateY(-1px);
 }
 
-/* Action Buttons - Smaller */
-.actions {
-  white-space: nowrap;
-  min-width: 160px;
+/* Inline Editing Styles */
+.editable-cell-container {
+  position: relative;
+  min-width: 120px;
 }
 
-.edit-button, .delete-button, .unmark-button {
-  padding: 3px 8px;
-  margin: 0 2px;
-  border: none;
-  border-radius: 4px;
+.inline-text-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.inline-text-input:focus {
+  outline: none;
+  border-color: #F5C400;
+  box-shadow: 0 0 0 2px rgba(245, 196, 0, 0.2);
+}
+
+.inline-text-input:hover {
+  border-color: #F5C400;
+}
+
+.inline-date-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.inline-date-input:focus {
+  outline: none;
+  border-color: #F5C400;
+  box-shadow: 0 0 0 2px rgba(245, 196, 0, 0.2);
+}
+
+.inline-date-input:hover {
+  border-color: #F5C400;
+}
+
+.saving-indicator {
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 10px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-block;
+  color: #F5C400;
+  animation: pulse 1s infinite;
 }
 
-.edit-button {
-  background-color: #F5C400;
-  color: #0A2A43;
+/* Image cell styling */
+.image-cell {
+  text-align: center;
 }
 
-.edit-button:hover {
-  background-color: #e6b800;
-  transform: translateY(-1px);
+/* Status cell styling */
+.status-cell {
+  white-space: nowrap;
 }
 
-.delete-button {
-  background-color: #ef4444;
-  color: white;
+/* Column header hint for editable columns */
+.checks-table th:nth-child(17),
+.checks-table th:nth-child(18),
+.checks-table th:nth-child(19) {
+  position: relative;
+  background-color: #f0fdf4;
 }
 
-.delete-button:hover {
-  background-color: #dc2626;
-  transform: translateY(-1px);
-}
-
-.unmark-button {
-  background-color: #6c757d;
-  color: white;
-}
-
-.unmark-button.active:hover {
-  background-color: #5a6268;
-  transform: translateY(-1px);
-}
-
-.unmark-button.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.unmark-button.disabled:hover {
-  transform: none;
+.checks-table th:nth-child(17)::after,
+.checks-table th:nth-child(18)::after,
+.checks-table th:nth-child(19)::after {
+  content: "✎";
+  font-size: 10px;
+  margin-left: 6px;
+  opacity: 0.7;
+  font-weight: normal;
 }
 
 /* Empty State */
@@ -602,21 +787,6 @@ body {
   animation: pulse 2s infinite;
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(245, 196, 0, 0.7);
-  }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 4px rgba(245, 196, 0, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(245, 196, 0, 0);
-  }
-}
-
 .notification-message {
   font-size: 12px;
   font-weight: 500;
@@ -682,55 +852,6 @@ body {
 
 .toast-message {
   flex: 1;
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-/* Badge on tab */
-.badge {
-  display: inline-block;
-  background-color: #F5C400;
-  color: #0A2A43;
-  border-radius: 20px;
-  padding: 1px 5px;
-  font-size: 10px;
-  font-weight: 600;
-  margin-left: 4px;
-  vertical-align: middle;
-}
-
-/* Highlight effect */
-.highlight-row {
-  background-color: rgba(245, 196, 0, 0.3) !important;
-  transition: background-color 0.3s ease;
-  animation: highlightFlash 1s ease;
-}
-
-@keyframes highlightFlash {
-  0% {
-    background-color: rgba(245, 196, 0, 0.5);
-  }
-  100% {
-    background-color: rgba(245, 196, 0, 0.3);
-  }
 }
 
 /* Modal styles */
@@ -942,6 +1063,71 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+/* Badge on tab */
+.badge {
+  display: inline-block;
+  background-color: #F5C400;
+  color: #0A2A43;
+  border-radius: 20px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* Highlight effect */
+.highlight-row {
+  background-color: rgba(245, 196, 0, 0.3) !important;
+  transition: background-color 0.3s ease;
+  animation: highlightFlash 1s ease;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(245, 196, 0, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 4px rgba(245, 196, 0, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(245, 196, 0, 0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes highlightFlash {
+  0% {
+    background-color: rgba(245, 196, 0, 0.5);
+  }
+  100% {
+    background-color: rgba(245, 196, 0, 0.3);
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .dashboard-container {
@@ -1027,139 +1213,24 @@ body {
     max-width: none;
   }
   
-  .edit-button, .delete-button, .unmark-button {
-    padding: 2px 6px;
-    font-size: 9px;
+  .action-bar {
+    flex-direction: column;
+    align-items: stretch;
   }
   
-  .actions {
-    min-width: 130px;
+  .action-buttons {
+    justify-content: center;
   }
-}
-/* Inline Editing Styles - Visible Inputs */
-.editable-cell-container {
-  position: relative;
-  min-width: 120px;
-}
-
-.inline-text-input {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 12px;
-  font-family: inherit;
-  background-color: white;
-  transition: all 0.2s ease;
-}
-
-.inline-text-input:focus {
-  outline: none;
-  border-color: #F5C400;
-  box-shadow: 0 0 0 2px rgba(245, 196, 0, 0.2);
-}
-
-.inline-text-input:hover {
-  border-color: #F5C400;
-}
-
-.inline-date-input {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 12px;
-  font-family: inherit;
-  background-color: white;
-  transition: all 0.2s ease;
-}
-
-.inline-date-input:focus {
-  outline: none;
-  border-color: #F5C400;
-  box-shadow: 0 0 0 2px rgba(245, 196, 0, 0.2);
-}
-
-.inline-date-input:hover {
-  border-color: #F5C400;
-}
-
-.saving-indicator {
-  position: absolute;
-  right: -20px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 10px;
-  color: #F5C400;
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* Image cell styling */
-.image-cell {
-  text-align: center;
-}
-
-/* Status cell styling */
-.status-cell {
-  white-space: nowrap;
-}
-
-/* Column header hint for editable columns */
-.checks-table th:nth-child(17),
-.checks-table th:nth-child(18),
-.checks-table th:nth-child(19) {
-  position: relative;
-  background-color: #f0fdf4;
-}
-
-.checks-table th:nth-child(17)::after,
-.checks-table th:nth-child(18)::after,
-.checks-table th:nth-child(19)::after {
-  content: "✎";
-  font-size: 10px;
-  margin-left: 6px;
-  opacity: 0.7;
-  font-weight: normal;
-}
-/* Drag-to-Scroll Styles */
-.drag-scroll {
-  overflow-x: auto;
-  overflow-y: visible;
-  user-select: none;
-  scroll-behavior: smooth;
-}
-
-.drag-scroll:active {
-  cursor: grabbing !important;
-}
-
-.table-wrapper {
-  position: relative;
-}
-
-.scroll-hint {
-  text-align: center;
-  padding: 8px;
-  font-size: 11px;
-  color: #94a3b8;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  font-style: italic;
-  letter-spacing: 0.3px;
-}
-
-.scroll-hint::before {
-  content: "🖱️ ";
-  font-size: 10px;
-}
-
-/* Better mobile touch support */
-@media (max-width: 768px) {
+  
+  .action-btn {
+    padding: 6px 16px;
+    font-size: 12px;
+  }
+  
+  .selection-hint {
+    text-align: center;
+  }
+  
   .drag-scroll {
     -webkit-overflow-scrolling: touch;
   }
@@ -1168,139 +1239,4 @@ body {
     font-size: 10px;
     padding: 6px;
   }
-}
-/* Action Bar Styles */
-.action-bar {
-  background: white;
-  border-radius: 12px;
-  padding: 12px 20px;
-  margin-bottom: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-
-.action-buttons {
-  display: flex;
-  gap: 12px;
-}
-
-.action-btn {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.action-btn:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.edit-btn {
-  background-color: #F5C400;
-  color: #0A2A43;
-}
-
-.edit-btn:not(:disabled):hover {
-  background-color: #e6b800;
-}
-
-.delete-btn {
-  background-color: #ef4444;
-  color: white;
-}
-
-.delete-btn:not(:disabled):hover {
-  background-color: #dc2626;
-}
-
-.unreceive-btn {
-  background-color: #6c757d;
-  color: white;
-}
-
-.unreceive-btn:not(:disabled):hover {
-  background-color: #5a6268;
-}
-
-.selection-hint {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.selected-info {
-  color: #10B981;
-  font-weight: 500;
-  background: #f0fdf4;
-  padding: 4px 12px;
-  border-radius: 20px;
-}
-
-.hint-text {
-  color: #64748b;
-}
-
-/* Radio Button / Selection Styles */
-.radio-cell {
-  text-align: center;
-  width: 30px;
-}
-
-.custom-radio {
-  width: 18px;
-  height: 18px;
-  border: 2px solid #cbd5e1;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: white;
-}
-
-.custom-radio.selected {
-  border-color: #F5C400;
-  background-color: #F5C400;
-}
-
-.radio-check {
-  color: #0A2A43;
-  font-size: 11px;
-  font-weight: bold;
-}
-
-/* Selected Row Highlight */
-.checks-table tbody tr.selected-row {
-  background-color: rgba(245, 196, 0, 0.15) !important;
-  border-left: 3px solid #F5C400;
-}
-
-.checks-table tbody tr.selected-row:hover {
-  background-color: rgba(245, 196, 0, 0.2) !important;
-}
-
-.checks-table tbody tr {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.checks-table tbody tr:hover {
-  background-color: #f8fafc;
 }
