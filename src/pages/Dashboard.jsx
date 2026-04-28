@@ -20,7 +20,7 @@ function Dashboard() {
   const [toast, setToast] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [currentCheck, setCurrentCheck] = useState(null);
-  const [selectedCheckId, setSelectedCheckId] = useState(null); // Track selected row
+  const [selectedCheckId, setSelectedCheckId] = useState(null);
   const [editFormData, setEditFormData] = useState({
     account_name: '',
     pay_to_the_order_of: '',
@@ -30,8 +30,7 @@ function Dashboard() {
     cr_date: '',
     invoice_no: '',
     account_no: '',
-    check_no: '',
-    bank_name: ''
+    check_no: ''
   });
   const [receivedModalOpen, setReceivedModalOpen] = useState(false);
   const [receivedCheckId, setReceivedCheckId] = useState(null);
@@ -40,7 +39,7 @@ function Dashboard() {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
   
-  // Inline editing states (only for date deposited, bank deposited, deposited by)
+  // Inline editing states
   const [tempDateDeposited, setTempDateDeposited] = useState({});
   const [tempBankDeposited, setTempBankDeposited] = useState({});
   const [tempDepositedBy, setTempDepositedBy] = useState({});
@@ -68,7 +67,6 @@ function Dashboard() {
     }, 3000);
   };
 
-  // Smooth momentum scrolling
   const applyMomentum = () => {
     if (Math.abs(dragVelocity) < 0.5) {
       if (momentumRef.current) {
@@ -100,7 +98,7 @@ function Dashboard() {
       target.tagName === 'INPUT' ||
       target.tagName === 'BUTTON' ||
       target.closest('.editable-cell-container') ||
-      target.closest('.actions-bar') ||
+      target.closest('.action-bar') ||
       target.closest('.mark-received-button')
     ) {
       return;
@@ -161,12 +159,15 @@ function Dashboard() {
     }
   };
 
-  // Handle row selection
+  // Row selection with toggle functionality (click to select, click again to unselect)
   const handleRowSelect = (checkId) => {
-    setSelectedCheckId(checkId);
+    if (selectedCheckId === checkId) {
+      setSelectedCheckId(null);
+    } else {
+      setSelectedCheckId(checkId);
+    }
   };
 
-  // Edit selected check
   const handleEditSelected = () => {
     if (!selectedCheckId) {
       showToast('Please select a check first by clicking on a row', 'warning');
@@ -178,7 +179,6 @@ function Dashboard() {
     }
   };
 
-  // Delete selected check
   const handleDeleteSelected = async () => {
     if (!selectedCheckId) {
       showToast('Please select a check first by clicking on a row', 'warning');
@@ -192,11 +192,10 @@ function Dashboard() {
       showToast('Check deleted successfully', 'success');
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Failed to delete check');
+      showToast('Failed to delete check', 'error');
     }
   };
 
-  // Mark not received for selected check
   const handleMarkNotReceivedSelected = async () => {
     if (!selectedCheckId) {
       showToast('Please select a check first by clicking on a row', 'warning');
@@ -215,7 +214,7 @@ function Dashboard() {
       showToast('Check marked as not received', 'success');
     } catch (error) {
       console.error('Error marking not received:', error);
-      alert('Failed to update check status');
+      showToast('Failed to update check status', 'error');
     }
   };
 
@@ -280,7 +279,7 @@ function Dashboard() {
       setTempDepositedBy(depositedByMap);
     } catch (error) {
       console.error('Error fetching checks:', error);
-      alert('Failed to load checks. Make sure backend is running.');
+      showToast('Failed to load checks. Make sure backend is running.', 'error');
     } finally {
       setLoading(false);
     }
@@ -337,7 +336,6 @@ function Dashboard() {
     }
 
     setFilteredChecks(result);
-    // Clear selection when filters change
     setSelectedCheckId(null);
   };
 
@@ -390,14 +388,14 @@ function Dashboard() {
         eventSourceRef.current = eventSource;
         
         eventSource.onopen = () => {
-          console.log('✅ SSE connection established successfully');
+          console.log('SSE connection established successfully');
           reconnectAttempts = 0;
         };
         
         eventSource.onmessage = (event) => {
           try {
             const newNotification = JSON.parse(event.data);
-            console.log('🔔 New notification received:', newNotification);
+            console.log('New notification received:', newNotification);
             
             setNotifications(prev => [newNotification, ...prev]);
             showToast(newNotification.message, 'info');
@@ -421,7 +419,7 @@ function Dashboard() {
         };
         
         eventSource.onerror = (error) => {
-          console.error('❌ SSE error:', error);
+          console.error('SSE error:', error);
           eventSource.close();
           
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
@@ -539,7 +537,6 @@ function Dashboard() {
   const openEditModal = (check) => {
     setCurrentCheck(check);
     setEditFormData({
-      bank_name: check.bank_name || '',
       account_name: check.account_name || '',
       pay_to_the_order_of: check.pay_to_the_order_of || '',
       amount: check.amount || '',
@@ -568,7 +565,7 @@ function Dashboard() {
       showToast('Check updated successfully', 'success');
     } catch (error) {
       console.error('Update error:', error);
-      alert('Failed to update check');
+      showToast('Failed to update check: ' + (error.response?.data?.detail || error.message), 'error');
     }
   };
 
@@ -589,7 +586,7 @@ function Dashboard() {
 
   const handleMarkReceived = async () => {
     if (!receivedCheckId || !receivedDate || !receivedBy) {
-      alert('Please fill in both received date and received by fields');
+      showToast('Please fill in both received date and received by fields', 'error');
       return;
     }
     try {
@@ -602,7 +599,7 @@ function Dashboard() {
       showToast('Check marked as received', 'success');
     } catch (error) {
       console.error('Error marking received:', error);
-      alert('Failed to mark check');
+      showToast('Failed to mark check', 'error');
     }
   };
 
@@ -618,7 +615,7 @@ function Dashboard() {
 
   const exportToExcel = () => {
     if (filteredChecks.length === 0) {
-      alert('No data to export');
+      showToast('No data to export', 'warning');
       return;
     }
 
@@ -733,7 +730,7 @@ function Dashboard() {
       {toast && toast.visible && (
         <div className={`toast-notification ${toast.type}`}>
           <span className="toast-icon">
-            {toast.type === 'success' ? '✓' : toast.type === 'error' ? '✗' : '🔔'}
+            {toast.type === 'success' ? '✓' : toast.type === 'error' ? '✗' : 'ℹ'}
           </span>
           <span className="toast-message">{toast.message}</span>
         </div>
@@ -762,8 +759,9 @@ function Dashboard() {
             <span className="stat-label-compact">Latest Scan</span>
           </div>
           {selectedCheckId && (
-            <div className="stat-item">
-              <span className="stat-label-compact">Selected Check: #{filteredChecks.find(c => c._id === selectedCheckId)?.check_no || '-'}</span>
+            <div className="stat-item selected-check">
+              <span className="stat-label-compact">Selected Check:</span>
+              <span className="selected-check-number">#{filteredChecks.find(c => c._id === selectedCheckId)?.check_no || '-'}</span>
             </div>
           )}
         </div>
@@ -785,7 +783,6 @@ function Dashboard() {
 
         {activeTab === 'checks' && (
           <>
-            {/* Action Bar - Buttons at the top */}
             <div className="action-bar">
               <div className="action-buttons">
                 <button 
@@ -793,28 +790,28 @@ function Dashboard() {
                   className="action-btn edit-btn"
                   disabled={!selectedCheckId}
                 >
-                  ✏️ Edit
+                  Edit
                 </button>
                 <button 
                   onClick={handleDeleteSelected} 
                   className="action-btn delete-btn"
                   disabled={!selectedCheckId}
                 >
-                  🗑️ Delete
+                  Delete
                 </button>
                 <button 
                   onClick={handleMarkNotReceivedSelected} 
                   className="action-btn unreceive-btn"
                   disabled={!selectedCheckId || !filteredChecks.find(c => c._id === selectedCheckId)?.is_received}
                 >
-                  📤 Not Received
+                  Not Received
                 </button>
               </div>
               <div className="selection-hint">
                 {selectedCheckId ? (
-                  <span className="selected-info">✓ Check #{filteredChecks.find(c => c._id === selectedCheckId)?.check_no} selected</span>
+                  <span className="selected-info">Check #{filteredChecks.find(c => c._id === selectedCheckId)?.check_no} selected - Click row again to unselect</span>
                 ) : (
-                  <span className="hint-text">💡 Click on any row to select a check, then use the buttons above</span>
+                  <span className="hint-text">Click on any row to select a check, then use the buttons above</span>
                 )}
               </div>
             </div>
@@ -1052,7 +1049,7 @@ function Dashboard() {
                     ))}
                   </tbody>
                 </table>
-                <div className="scroll-hint">← Click and drag anywhere on the table to scroll horizontally →</div>
+                <div className="scroll-hint">Click and drag anywhere on the table to scroll horizontally</div>
               </div>
             )}
           </>
@@ -1117,16 +1114,6 @@ function Dashboard() {
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Edit Check #{currentCheck.check_no}</h3>
             <form onSubmit={handleEditSubmit} className="modal-form">
-              <div className="form-group">
-                <label>Bank Name</label>
-                <input
-                  type="text"
-                  value={editFormData.bank_name}
-                  onChange={(e) => setEditFormData({ ...editFormData, bank_name: e.target.value })}
-                  placeholder="Enter bank name"
-                  className="edit-input"
-                />
-              </div>
               <div className="form-group">
                 <label>Account Name</label>
                 <input
