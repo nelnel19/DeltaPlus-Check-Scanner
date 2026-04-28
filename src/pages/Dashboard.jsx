@@ -22,6 +22,7 @@ function Dashboard() {
   const [currentCheck, setCurrentCheck] = useState(null);
   const [selectedCheckId, setSelectedCheckId] = useState(null);
   const [editFormData, setEditFormData] = useState({
+    bank_name: '',
     account_name: '',
     pay_to_the_order_of: '',
     amount: '',
@@ -45,15 +46,11 @@ function Dashboard() {
   const [tempDepositedBy, setTempDepositedBy] = useState({});
   const [savingFields, setSavingFields] = useState({});
   
-  // Drag-to-scroll states
+  // Drag-to-scroll states - Fixed for smooth tracking
   const tableWrapperRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [dragVelocity, setDragVelocity] = useState(0);
-  const [lastDragTime, setLastDragTime] = useState(0);
-  const [lastDragX, setLastDragX] = useState(0);
-  const momentumRef = useRef(null);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartScrollLeft, setDragStartScrollLeft] = useState(0);
   
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef(null);
@@ -67,31 +64,7 @@ function Dashboard() {
     }, 3000);
   };
 
-  const applyMomentum = () => {
-    if (Math.abs(dragVelocity) < 0.5) {
-      if (momentumRef.current) {
-        cancelAnimationFrame(momentumRef.current);
-        momentumRef.current = null;
-      }
-      return;
-    }
-    
-    if (tableWrapperRef.current) {
-      tableWrapperRef.current.scrollLeft -= dragVelocity;
-      setDragVelocity(prev => prev * 0.95);
-    }
-    
-    momentumRef.current = requestAnimationFrame(applyMomentum);
-  };
-
-  const stopMomentum = () => {
-    if (momentumRef.current) {
-      cancelAnimationFrame(momentumRef.current);
-      momentumRef.current = null;
-    }
-    setDragVelocity(0);
-  };
-
+  // Fixed smooth drag scrolling - mouse movement exactly follows
   const handleMouseDown = (e) => {
     const target = e.target;
     if (
@@ -99,18 +72,20 @@ function Dashboard() {
       target.tagName === 'BUTTON' ||
       target.closest('.editable-cell-container') ||
       target.closest('.action-bar') ||
-      target.closest('.mark-received-button')
+      target.closest('.mark-received-button') ||
+      target.closest('.filter-button') ||
+      target.closest('.tab-button') ||
+      target.closest('.action-btn') ||
+      target.closest('.export-button-compact') ||
+      target.closest('.clear-date-button')
     ) {
       return;
     }
     
     e.preventDefault();
-    stopMomentum();
     setIsDragging(true);
-    setStartX(e.pageX - tableWrapperRef.current.offsetLeft);
-    setScrollLeft(tableWrapperRef.current.scrollLeft);
-    setLastDragX(e.pageX);
-    setLastDragTime(Date.now());
+    setDragStartX(e.pageX);
+    setDragStartScrollLeft(tableWrapperRef.current.scrollLeft);
     tableWrapperRef.current.style.cursor = 'grabbing';
     tableWrapperRef.current.style.userSelect = 'none';
   };
@@ -119,19 +94,9 @@ function Dashboard() {
     if (!isDragging || !tableWrapperRef.current) return;
     e.preventDefault();
     
-    const x = e.pageX - tableWrapperRef.current.offsetLeft;
-    const walk = (x - startX) * 1.2;
-    tableWrapperRef.current.scrollLeft = scrollLeft - walk;
-    
-    const now = Date.now();
-    const dt = now - lastDragTime;
-    if (dt > 0) {
-      const dx = e.pageX - lastDragX;
-      const velocity = (dx / dt) * 16;
-      setDragVelocity(velocity);
-    }
-    setLastDragX(e.pageX);
-    setLastDragTime(now);
+    const dx = e.pageX - dragStartX;
+    const newScrollLeft = dragStartScrollLeft - dx;
+    tableWrapperRef.current.scrollLeft = newScrollLeft;
   };
 
   const handleMouseUp = () => {
@@ -140,9 +105,6 @@ function Dashboard() {
     if (tableWrapperRef.current) {
       tableWrapperRef.current.style.cursor = 'grab';
       tableWrapperRef.current.style.userSelect = '';
-    }
-    if (Math.abs(dragVelocity) > 1) {
-      applyMomentum();
     }
   };
 
@@ -153,13 +115,10 @@ function Dashboard() {
         tableWrapperRef.current.style.cursor = 'grab';
         tableWrapperRef.current.style.userSelect = '';
       }
-      if (Math.abs(dragVelocity) > 1) {
-        applyMomentum();
-      }
     }
   };
 
-  // Row selection with toggle functionality (click to select, click again to unselect)
+  // Row selection with toggle functionality
   const handleRowSelect = (checkId) => {
     if (selectedCheckId === checkId) {
       setSelectedCheckId(null);
@@ -369,7 +328,6 @@ function Dashboard() {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
-      stopMomentum();
     };
   }, [navigate]);
 
@@ -449,7 +407,6 @@ function Dashboard() {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
-      stopMomentum();
     };
   }, []);
 
@@ -537,6 +494,7 @@ function Dashboard() {
   const openEditModal = (check) => {
     setCurrentCheck(check);
     setEditFormData({
+      bank_name: check.bank_name || '',
       account_name: check.account_name || '',
       pay_to_the_order_of: check.pay_to_the_order_of || '',
       amount: check.amount || '',
@@ -1108,12 +1066,22 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Modal - With Bank Name */}
       {editModalOpen && currentCheck && (
         <div className="modal-overlay" onClick={closeEditModal}>
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Edit Check #{currentCheck.check_no}</h3>
             <form onSubmit={handleEditSubmit} className="modal-form">
+              <div className="form-group">
+                <label>Bank Name</label>
+                <input
+                  type="text"
+                  value={editFormData.bank_name}
+                  onChange={(e) => setEditFormData({ ...editFormData, bank_name: e.target.value })}
+                  placeholder="Enter bank name"
+                  className="edit-input"
+                />
+              </div>
               <div className="form-group">
                 <label>Account Name</label>
                 <input
