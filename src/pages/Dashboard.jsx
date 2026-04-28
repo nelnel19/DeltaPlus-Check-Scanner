@@ -30,7 +30,7 @@ function Dashboard() {
     invoice_no: '',
     account_no: '',
     check_no: '',
-    bank_name: ''  // ADDED bank name
+    bank_name: ''
   });
   const [receivedModalOpen, setReceivedModalOpen] = useState(false);
   const [receivedCheckId, setReceivedCheckId] = useState(null);
@@ -43,7 +43,7 @@ function Dashboard() {
   const [tempDateDeposited, setTempDateDeposited] = useState({});
   const [tempBankDeposited, setTempBankDeposited] = useState({});
   const [tempDepositedBy, setTempDepositedBy] = useState({});
-  const [tempBankName, setTempBankName] = useState({});  // ADDED for bank name inline editing
+  const [tempBankName, setTempBankName] = useState({});
   const [savingFields, setSavingFields] = useState({});
   
   // Drag-to-scroll states
@@ -145,21 +145,20 @@ function Dashboard() {
     try {
       const response = await axios.get(`${API_URL}/api/checks`);
       setChecks(response.data);
-      // Initialize temp state with current values
       const dateDepositedMap = {};
       const bankDepositedMap = {};
       const depositedByMap = {};
-      const bankNameMap = {};  // ADDED
+      const bankNameMap = {};
       response.data.forEach(check => {
         dateDepositedMap[check._id] = check.date_deposited || '';
         bankDepositedMap[check._id] = check.bank_deposited || '';
         depositedByMap[check._id] = check.deposited_by || '';
-        bankNameMap[check._id] = check.bank_name || '';  // ADDED
+        bankNameMap[check._id] = check.bank_name || '';
       });
       setTempDateDeposited(dateDepositedMap);
       setTempBankDeposited(bankDepositedMap);
       setTempDepositedBy(depositedByMap);
-      setTempBankName(bankNameMap);  // ADDED
+      setTempBankName(bankNameMap);
     } catch (error) {
       console.error('Error fetching checks:', error);
       alert('Failed to load checks. Make sure backend is running.');
@@ -355,7 +354,6 @@ function Dashboard() {
     }
   };
 
-  // Save bank name - inline editing
   const saveBankName = async (checkId) => {
     const value = tempBankName[checkId];
     setSavingFields(prev => ({ ...prev, [`bank_name-${checkId}`]: true }));
@@ -375,7 +373,6 @@ function Dashboard() {
     }
   };
 
-  // Save date deposited - only on Enter key
   const saveDateDeposited = async (checkId) => {
     const value = tempDateDeposited[checkId];
     setSavingFields(prev => ({ ...prev, [`date_deposited-${checkId}`]: true }));
@@ -395,7 +392,6 @@ function Dashboard() {
     }
   };
 
-  // Save bank deposited - only on Enter key
   const saveBankDeposited = async (checkId) => {
     const value = tempBankDeposited[checkId];
     setSavingFields(prev => ({ ...prev, [`bank_deposited-${checkId}`]: true }));
@@ -415,7 +411,6 @@ function Dashboard() {
     }
   };
 
-  // Save deposited by - only on Enter key
   const saveDepositedBy = async (checkId) => {
     const value = tempDepositedBy[checkId];
     setSavingFields(prev => ({ ...prev, [`deposited_by-${checkId}`]: true }));
@@ -435,7 +430,6 @@ function Dashboard() {
     }
   };
 
-  // Handle key press (Enter to save)
   const handleKeyPress = (e, checkId, field) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -464,7 +458,7 @@ function Dashboard() {
       invoice_no: check.invoice_no || '',
       account_no: check.account_no || '',
       check_no: check.check_no || '',
-      bank_name: check.bank_name || ''  // ADDED
+      bank_name: check.bank_name || ''
     });
     setEditModalOpen(true);
   };
@@ -942,8 +936,8 @@ function Dashboard() {
                           >
                             Not Received
                           </button>
-                         </nu产品
-                      </tr>
+                         </td>
+                       </tr>
                     ))}
                   </tbody>
                 </table>
@@ -1006,7 +1000,7 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Edit Modal - Updated with Bank Name */}
+      {/* Edit Modal */}
       {editModalOpen && currentCheck && (
         <div className="modal-overlay" onClick={closeEditModal}>
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
