@@ -14,6 +14,7 @@ function Dashboard() {
   const [scanDate, setScanDate] = useState('');
   const [depositedDate, setDepositedDate] = useState('');
   const [receivedDateFilter, setReceivedDateFilter] = useState('');
+  const [accountNameFilter, setAccountNameFilter] = useState(''); // New filter state
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -253,6 +254,10 @@ function Dashboard() {
     }
   };
 
+  const clearAccountNameFilter = () => {
+    setAccountNameFilter('');
+  };
+
   const applyFilters = () => {
     let result = [...checks];
 
@@ -292,6 +297,14 @@ function Dashboard() {
         checkReceivedDate.setHours(0, 0, 0, 0);
         return checkReceivedDate.getTime() === selectedReceivedDate.getTime();
       });
+    }
+
+    // Account name filter - case insensitive partial match
+    if (accountNameFilter && accountNameFilter.trim()) {
+      const searchTerm = accountNameFilter.trim().toLowerCase();
+      result = result.filter(check => 
+        check.account_name && check.account_name.toLowerCase().includes(searchTerm)
+      );
     }
 
     setFilteredChecks(result);
@@ -412,7 +425,7 @@ function Dashboard() {
 
   useEffect(() => {
     applyFilters();
-  }, [filterStatus, scanDate, depositedDate, receivedDateFilter, checks]);
+  }, [filterStatus, scanDate, depositedDate, receivedDateFilter, accountNameFilter, checks]);
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
@@ -800,6 +813,24 @@ function Dashboard() {
               </div>
 
               <div className="filter-group">
+                <span className="filter-label">Account Name:</span>
+                <div className="account-filter-wrapper">
+                  <input
+                    type="text"
+                    value={accountNameFilter}
+                    onChange={(e) => setAccountNameFilter(e.target.value)}
+                    placeholder="Type account name to filter..."
+                    className="account-name-input"
+                  />
+                  {accountNameFilter && (
+                    <button onClick={clearAccountNameFilter} className="clear-filter-button" title="Clear account name filter">
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="filter-group">
                 <span className="filter-label">Scan Date:</span>
                 <div className="date-filter-wrapper">
                   <input
@@ -928,7 +959,7 @@ function Dashboard() {
                         </td>
                         <td>{check.user_full_name || '-'}</td>
                         <td>{check.bank_name || '-'}</td>
-                        <td>{check.account_name || '-'}</td>
+                        <td className="account-name-cell">{check.account_name || '-'}</td>
                         <td>{check.account_no || '-'}</td>
                         <td className="check-number">{check.check_no || '-'}</td>
                         <td>{check.pay_to_the_order_of || '-'}</td>
