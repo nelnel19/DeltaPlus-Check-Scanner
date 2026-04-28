@@ -1126,3 +1126,46 @@ body {
   opacity: 0.7;
   font-weight: normal;
 }
+/* Drag-to-Scroll Styles */
+.drag-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  user-select: none;
+  scroll-behavior: smooth;
+}
+
+.drag-scroll:active {
+  cursor: grabbing !important;
+}
+
+.table-wrapper {
+  position: relative;
+}
+
+.scroll-hint {
+  text-align: center;
+  padding: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  font-style: italic;
+  letter-spacing: 0.3px;
+}
+
+.scroll-hint::before {
+  content: "🖱️ ";
+  font-size: 10px;
+}
+
+/* Better mobile touch support */
+@media (max-width: 768px) {
+  .drag-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .scroll-hint {
+    font-size: 10px;
+    padding: 6px;
+  }
+}
