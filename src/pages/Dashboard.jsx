@@ -28,8 +28,9 @@ function Dashboard() {
     cr: '',
     cr_date: '',
     invoice_no: '',
-    account_no: '',    // ADDED
-    check_no: ''       // ADDED
+    account_no: '',
+    check_no: '',
+    bank_name: ''  // ADDED bank name
   });
   const [receivedModalOpen, setReceivedModalOpen] = useState(false);
   const [receivedCheckId, setReceivedCheckId] = useState(null);
@@ -38,11 +39,18 @@ function Dashboard() {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
   
-  // Inline editing states - with temporary values
+  // Inline editing states
   const [tempDateDeposited, setTempDateDeposited] = useState({});
   const [tempBankDeposited, setTempBankDeposited] = useState({});
   const [tempDepositedBy, setTempDepositedBy] = useState({});
+  const [tempBankName, setTempBankName] = useState({});  // ADDED for bank name inline editing
   const [savingFields, setSavingFields] = useState({});
+  
+  // Drag-to-scroll states
+  const tableWrapperRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
   
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef(null);
@@ -54,6 +62,39 @@ function Dashboard() {
     setTimeout(() => {
       setToast(null);
     }, 3000);
+  };
+
+  // Drag-to-scroll handlers
+  const handleMouseDown = (e) => {
+    if (tableWrapperRef.current && e.target.closest('.editable-cell-container') === null && e.target.tagName !== 'INPUT') {
+      setIsDragging(true);
+      setStartX(e.pageX - tableWrapperRef.current.offsetLeft);
+      setScrollLeft(tableWrapperRef.current.scrollLeft);
+      tableWrapperRef.current.style.cursor = 'grabbing';
+      e.preventDefault();
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - tableWrapperRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    tableWrapperRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    if (tableWrapperRef.current) {
+      tableWrapperRef.current.style.cursor = 'grab';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    if (tableWrapperRef.current) {
+      tableWrapperRef.current.style.cursor = 'grab';
+    }
   };
 
   const fetchUnreadCount = async () => {
@@ -108,14 +149,17 @@ function Dashboard() {
       const dateDepositedMap = {};
       const bankDepositedMap = {};
       const depositedByMap = {};
+      const bankNameMap = {};  // ADDED
       response.data.forEach(check => {
         dateDepositedMap[check._id] = check.date_deposited || '';
         bankDepositedMap[check._id] = check.bank_deposited || '';
         depositedByMap[check._id] = check.deposited_by || '';
+        bankNameMap[check._id] = check.bank_name || '';  // ADDED
       });
       setTempDateDeposited(dateDepositedMap);
       setTempBankDeposited(bankDepositedMap);
       setTempDepositedBy(depositedByMap);
+      setTempBankName(bankNameMap);  // ADDED
     } catch (error) {
       console.error('Error fetching checks:', error);
       alert('Failed to load checks. Make sure backend is running.');
@@ -202,8 +246,6 @@ function Dashboard() {
     }
     
     refreshData();
-    
-    // REMOVED auto-refresh interval
     
     return () => {
       if (refreshTimeoutRef.current) {
@@ -313,13 +355,32 @@ function Dashboard() {
     }
   };
 
+  // Save bank name - inline editing
+  const saveBankName = async (checkId) => {
+    const value = tempBankName[checkId];
+    setSavingFields(prev => ({ ...prev, [`bank_name-${checkId}`]: true }));
+    try {
+      await axios.put(`${API_URL}/api/checks/${checkId}`, { bank_name: value });
+      setChecks(prevChecks => prevChecks.map(check => 
+        check._id === checkId ? { ...check, bank_name: value } : check
+      ));
+      showToast('Bank name updated successfully', 'success');
+    } catch (error) {
+      console.error('Update error:', error);
+      showToast('Failed to update bank name', 'error');
+      const originalCheck = checks.find(c => c._id === checkId);
+      setTempBankName(prev => ({ ...prev, [checkId]: originalCheck?.bank_name || '' }));
+    } finally {
+      setSavingFields(prev => ({ ...prev, [`bank_name-${checkId}`]: false }));
+    }
+  };
+
   // Save date deposited - only on Enter key
   const saveDateDeposited = async (checkId) => {
     const value = tempDateDeposited[checkId];
-    setSavingFields(prev => ({ ...prev, [checkId]: true }));
+    setSavingFields(prev => ({ ...prev, [`date_deposited-${checkId}`]: true }));
     try {
       await axios.put(`${API_URL}/api/checks/${checkId}`, { date_deposited: value });
-      // Update the checks state to reflect the saved value
       setChecks(prevChecks => prevChecks.map(check => 
         check._id === checkId ? { ...check, date_deposited: value } : check
       ));
@@ -327,21 +388,19 @@ function Dashboard() {
     } catch (error) {
       console.error('Update error:', error);
       showToast('Failed to update date deposited', 'error');
-      // Revert on error
       const originalCheck = checks.find(c => c._id === checkId);
       setTempDateDeposited(prev => ({ ...prev, [checkId]: originalCheck?.date_deposited || '' }));
     } finally {
-      setSavingFields(prev => ({ ...prev, [checkId]: false }));
+      setSavingFields(prev => ({ ...prev, [`date_deposited-${checkId}`]: false }));
     }
   };
 
   // Save bank deposited - only on Enter key
   const saveBankDeposited = async (checkId) => {
     const value = tempBankDeposited[checkId];
-    setSavingFields(prev => ({ ...prev, [checkId]: true }));
+    setSavingFields(prev => ({ ...prev, [`bank_deposited-${checkId}`]: true }));
     try {
       await axios.put(`${API_URL}/api/checks/${checkId}`, { bank_deposited: value });
-      // Update the checks state to reflect the saved value
       setChecks(prevChecks => prevChecks.map(check => 
         check._id === checkId ? { ...check, bank_deposited: value } : check
       ));
@@ -349,21 +408,19 @@ function Dashboard() {
     } catch (error) {
       console.error('Update error:', error);
       showToast('Failed to update bank deposited', 'error');
-      // Revert on error
       const originalCheck = checks.find(c => c._id === checkId);
       setTempBankDeposited(prev => ({ ...prev, [checkId]: originalCheck?.bank_deposited || '' }));
     } finally {
-      setSavingFields(prev => ({ ...prev, [checkId]: false }));
+      setSavingFields(prev => ({ ...prev, [`bank_deposited-${checkId}`]: false }));
     }
   };
 
   // Save deposited by - only on Enter key
   const saveDepositedBy = async (checkId) => {
     const value = tempDepositedBy[checkId];
-    setSavingFields(prev => ({ ...prev, [checkId]: true }));
+    setSavingFields(prev => ({ ...prev, [`deposited_by-${checkId}`]: true }));
     try {
       await axios.put(`${API_URL}/api/checks/${checkId}`, { deposited_by: value });
-      // Update the checks state to reflect the saved value
       setChecks(prevChecks => prevChecks.map(check => 
         check._id === checkId ? { ...check, deposited_by: value } : check
       ));
@@ -371,11 +428,10 @@ function Dashboard() {
     } catch (error) {
       console.error('Update error:', error);
       showToast('Failed to update deposited by', 'error');
-      // Revert on error
       const originalCheck = checks.find(c => c._id === checkId);
       setTempDepositedBy(prev => ({ ...prev, [checkId]: originalCheck?.deposited_by || '' }));
     } finally {
-      setSavingFields(prev => ({ ...prev, [checkId]: false }));
+      setSavingFields(prev => ({ ...prev, [`deposited_by-${checkId}`]: false }));
     }
   };
 
@@ -383,7 +439,9 @@ function Dashboard() {
   const handleKeyPress = (e, checkId, field) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (field === 'date_deposited') {
+      if (field === 'bank_name') {
+        saveBankName(checkId);
+      } else if (field === 'date_deposited') {
         saveDateDeposited(checkId);
       } else if (field === 'bank_deposited') {
         saveBankDeposited(checkId);
@@ -404,8 +462,9 @@ function Dashboard() {
       cr: check.cr || '',
       cr_date: check.cr_date || '',
       invoice_no: check.invoice_no || '',
-      account_no: check.account_no || '',  // ADDED
-      check_no: check.check_no || ''       // ADDED
+      account_no: check.account_no || '',
+      check_no: check.check_no || '',
+      bank_name: check.bank_name || ''  // ADDED
     });
     setEditModalOpen(true);
   };
@@ -736,7 +795,15 @@ function Dashboard() {
             {filteredChecks.length === 0 ? (
               <div className="empty-state">No checks saved yet. Use the mobile app to scan and save checks.</div>
             ) : (
-              <div className="table-wrapper">
+              <div 
+                className="table-wrapper drag-scroll" 
+                ref={tableWrapperRef}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+                style={{ cursor: 'grab' }}
+              >
                 <table className="checks-table">
                   <thead>
                     <tr>
@@ -778,7 +845,21 @@ function Dashboard() {
                           ) : '-'}
                         </td>
                         <td>{check.user_full_name || '-'}</td>
-                        <td>{check.bank_name || '-'}</td>
+                        <td className="editable-cell-container">
+                          <input
+                            ref={el => inputRefs.current[`bank_name-${check._id}`] = el}
+                            type="text"
+                            value={tempBankName[check._id] || ''}
+                            onChange={(e) => {
+                              const newValue = e.target.value;
+                              setTempBankName(prev => ({ ...prev, [check._id]: newValue }));
+                            }}
+                            onKeyPress={(e) => handleKeyPress(e, check._id, 'bank_name')}
+                            className="inline-text-input"
+                            placeholder="Enter bank name"
+                          />
+                          {savingFields[`bank_name-${check._id}`] && <span className="saving-indicator">Saving...</span>}
+                        </td>
                         <td>{check.account_name || '-'}</td>
                         <td>{check.account_no || '-'}</td>
                         <td className="check-number">{check.check_no || '-'}</td>
@@ -815,7 +896,7 @@ function Dashboard() {
                             className="inline-date-input"
                             placeholder="Select date"
                           />
-                          {savingFields[check._id] && <span className="saving-indicator">Saving...</span>}
+                          {savingFields[`date_deposited-${check._id}`] && <span className="saving-indicator">Saving...</span>}
                         </td>
                         <td className="editable-cell-container">
                           <input
@@ -861,11 +942,12 @@ function Dashboard() {
                           >
                             Not Received
                           </button>
-                        </td>
+                         </nu产品
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                <div className="scroll-hint">← Drag to scroll horizontally →</div>
               </div>
             )}
           </>
@@ -924,12 +1006,21 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Edit Modal - UPDATED with Account No. and Check No. */}
+      {/* Edit Modal - Updated with Bank Name */}
       {editModalOpen && currentCheck && (
         <div className="modal-overlay" onClick={closeEditModal}>
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Edit Check #{currentCheck.check_no}</h3>
             <form onSubmit={handleEditSubmit} className="modal-form">
+              <div className="form-group">
+                <label>Bank Name</label>
+                <input
+                  type="text"
+                  value={editFormData.bank_name}
+                  onChange={(e) => setEditFormData({ ...editFormData, bank_name: e.target.value })}
+                  placeholder="Enter bank name"
+                />
+              </div>
               <div className="form-group">
                 <label>Account Name</label>
                 <input
@@ -940,7 +1031,7 @@ function Dashboard() {
                 />
               </div>
               <div className="form-group">
-                <label>Account No.</label>  {/* ADDED */}
+                <label>Account No.</label>
                 <input
                   type="text"
                   value={editFormData.account_no}
@@ -949,7 +1040,7 @@ function Dashboard() {
                 />
               </div>
               <div className="form-group">
-                <label>Check No.</label>  {/* ADDED */}
+                <label>Check No.</label>
                 <input
                   type="text"
                   value={editFormData.check_no}
