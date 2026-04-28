@@ -20,6 +20,7 @@ function Dashboard() {
   const [toast, setToast] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [currentCheck, setCurrentCheck] = useState(null);
+  const [selectedCheckId, setSelectedCheckId] = useState(null); // Track selected row
   const [editFormData, setEditFormData] = useState({
     account_name: '',
     pay_to_the_order_of: '',
@@ -39,11 +40,10 @@ function Dashboard() {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
   
-  // Inline editing states
+  // Inline editing states (only for date deposited, bank deposited, deposited by)
   const [tempDateDeposited, setTempDateDeposited] = useState({});
   const [tempBankDeposited, setTempBankDeposited] = useState({});
   const [tempDepositedBy, setTempDepositedBy] = useState({});
-  const [tempBankName, setTempBankName] = useState({});
   const [savingFields, setSavingFields] = useState({});
   
   // Drag-to-scroll states
@@ -51,6 +51,10 @@ function Dashboard() {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [dragVelocity, setDragVelocity] = useState(0);
+  const [lastDragTime, setLastDragTime] = useState(0);
+  const [lastDragX, setLastDragX] = useState(0);
+  const momentumRef = useRef(null);
   
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef(null);
@@ -64,36 +68,154 @@ function Dashboard() {
     }, 3000);
   };
 
-  // Drag-to-scroll handlers
-  const handleMouseDown = (e) => {
-    if (tableWrapperRef.current && e.target.closest('.editable-cell-container') === null && e.target.tagName !== 'INPUT') {
-      setIsDragging(true);
-      setStartX(e.pageX - tableWrapperRef.current.offsetLeft);
-      setScrollLeft(tableWrapperRef.current.scrollLeft);
-      tableWrapperRef.current.style.cursor = 'grabbing';
-      e.preventDefault();
+  // Smooth momentum scrolling
+  const applyMomentum = () => {
+    if (Math.abs(dragVelocity) < 0.5) {
+      if (momentumRef.current) {
+        cancelAnimationFrame(momentumRef.current);
+        momentumRef.current = null;
+      }
+      return;
     }
+    
+    if (tableWrapperRef.current) {
+      tableWrapperRef.current.scrollLeft -= dragVelocity;
+      setDragVelocity(prev => prev * 0.95);
+    }
+    
+    momentumRef.current = requestAnimationFrame(applyMomentum);
+  };
+
+  const stopMomentum = () => {
+    if (momentumRef.current) {
+      cancelAnimationFrame(momentumRef.current);
+      momentumRef.current = null;
+    }
+    setDragVelocity(0);
+  };
+
+  const handleMouseDown = (e) => {
+    const target = e.target;
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('.editable-cell-container') ||
+      target.closest('.actions-bar') ||
+      target.closest('.mark-received-button')
+    ) {
+      return;
+    }
+    
+    e.preventDefault();
+    stopMomentum();
+    setIsDragging(true);
+    setStartX(e.pageX - tableWrapperRef.current.offsetLeft);
+    setScrollLeft(tableWrapperRef.current.scrollLeft);
+    setLastDragX(e.pageX);
+    setLastDragTime(Date.now());
+    tableWrapperRef.current.style.cursor = 'grabbing';
+    tableWrapperRef.current.style.userSelect = 'none';
   };
 
   const handleMouseMove = (e) => {
-    if (!isDragging) return;
+    if (!isDragging || !tableWrapperRef.current) return;
     e.preventDefault();
+    
     const x = e.pageX - tableWrapperRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5;
+    const walk = (x - startX) * 1.2;
     tableWrapperRef.current.scrollLeft = scrollLeft - walk;
+    
+    const now = Date.now();
+    const dt = now - lastDragTime;
+    if (dt > 0) {
+      const dx = e.pageX - lastDragX;
+      const velocity = (dx / dt) * 16;
+      setDragVelocity(velocity);
+    }
+    setLastDragX(e.pageX);
+    setLastDragTime(now);
   };
 
   const handleMouseUp = () => {
+    if (!isDragging) return;
     setIsDragging(false);
     if (tableWrapperRef.current) {
       tableWrapperRef.current.style.cursor = 'grab';
+      tableWrapperRef.current.style.userSelect = '';
+    }
+    if (Math.abs(dragVelocity) > 1) {
+      applyMomentum();
     }
   };
 
   const handleMouseLeave = () => {
-    setIsDragging(false);
-    if (tableWrapperRef.current) {
-      tableWrapperRef.current.style.cursor = 'grab';
+    if (isDragging) {
+      setIsDragging(false);
+      if (tableWrapperRef.current) {
+        tableWrapperRef.current.style.cursor = 'grab';
+        tableWrapperRef.current.style.userSelect = '';
+      }
+      if (Math.abs(dragVelocity) > 1) {
+        applyMomentum();
+      }
+    }
+  };
+
+  // Handle row selection
+  const handleRowSelect = (checkId) => {
+    setSelectedCheckId(checkId);
+  };
+
+  // Edit selected check
+  const handleEditSelected = () => {
+    if (!selectedCheckId) {
+      showToast('Please select a check first by clicking on a row', 'warning');
+      return;
+    }
+    const selectedCheck = filteredChecks.find(check => check._id === selectedCheckId);
+    if (selectedCheck) {
+      openEditModal(selectedCheck);
+    }
+  };
+
+  // Delete selected check
+  const handleDeleteSelected = async () => {
+    if (!selectedCheckId) {
+      showToast('Please select a check first by clicking on a row', 'warning');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete this check? This action cannot be undone.')) return;
+    try {
+      await axios.delete(`${API_URL}/api/checks/${selectedCheckId}`);
+      setSelectedCheckId(null);
+      await refreshData();
+      showToast('Check deleted successfully', 'success');
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete check');
+    }
+  };
+
+  // Mark not received for selected check
+  const handleMarkNotReceivedSelected = async () => {
+    if (!selectedCheckId) {
+      showToast('Please select a check first by clicking on a row', 'warning');
+      return;
+    }
+    const selectedCheck = filteredChecks.find(check => check._id === selectedCheckId);
+    if (!selectedCheck?.is_received) {
+      showToast('This check is already marked as not received', 'info');
+      return;
+    }
+    if (!window.confirm('Mark this check as not received? This will clear the received date and received by information.')) return;
+    try {
+      await axios.put(`${API_URL}/api/checks/${selectedCheckId}/unreceived`);
+      setSelectedCheckId(null);
+      await refreshData();
+      showToast('Check marked as not received', 'success');
+    } catch (error) {
+      console.error('Error marking not received:', error);
+      alert('Failed to update check status');
     }
   };
 
@@ -148,17 +270,14 @@ function Dashboard() {
       const dateDepositedMap = {};
       const bankDepositedMap = {};
       const depositedByMap = {};
-      const bankNameMap = {};
       response.data.forEach(check => {
         dateDepositedMap[check._id] = check.date_deposited || '';
         bankDepositedMap[check._id] = check.bank_deposited || '';
         depositedByMap[check._id] = check.deposited_by || '';
-        bankNameMap[check._id] = check.bank_name || '';
       });
       setTempDateDeposited(dateDepositedMap);
       setTempBankDeposited(bankDepositedMap);
       setTempDepositedBy(depositedByMap);
-      setTempBankName(bankNameMap);
     } catch (error) {
       console.error('Error fetching checks:', error);
       alert('Failed to load checks. Make sure backend is running.');
@@ -218,6 +337,8 @@ function Dashboard() {
     }
 
     setFilteredChecks(result);
+    // Clear selection when filters change
+    setSelectedCheckId(null);
   };
 
   const clearScanDateFilter = () => {
@@ -250,6 +371,7 @@ function Dashboard() {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
+      stopMomentum();
     };
   }, [navigate]);
 
@@ -329,6 +451,7 @@ function Dashboard() {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
+      stopMomentum();
     };
   }, []);
 
@@ -340,37 +463,6 @@ function Dashboard() {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('full_name');
     navigate('/login');
-  };
-
-  const handleDelete = async (checkId) => {
-    if (!window.confirm('Are you sure you want to delete this check? This action cannot be undone.')) return;
-    try {
-      await axios.delete(`${API_URL}/api/checks/${checkId}`);
-      await refreshData();
-      showToast('Check deleted successfully', 'success');
-    } catch (error) {
-      console.error('Delete error:', error);
-      alert('Failed to delete check');
-    }
-  };
-
-  const saveBankName = async (checkId) => {
-    const value = tempBankName[checkId];
-    setSavingFields(prev => ({ ...prev, [`bank_name-${checkId}`]: true }));
-    try {
-      await axios.put(`${API_URL}/api/checks/${checkId}`, { bank_name: value });
-      setChecks(prevChecks => prevChecks.map(check => 
-        check._id === checkId ? { ...check, bank_name: value } : check
-      ));
-      showToast('Bank name updated successfully', 'success');
-    } catch (error) {
-      console.error('Update error:', error);
-      showToast('Failed to update bank name', 'error');
-      const originalCheck = checks.find(c => c._id === checkId);
-      setTempBankName(prev => ({ ...prev, [checkId]: originalCheck?.bank_name || '' }));
-    } finally {
-      setSavingFields(prev => ({ ...prev, [`bank_name-${checkId}`]: false }));
-    }
   };
 
   const saveDateDeposited = async (checkId) => {
@@ -433,9 +525,7 @@ function Dashboard() {
   const handleKeyPress = (e, checkId, field) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (field === 'bank_name') {
-        saveBankName(checkId);
-      } else if (field === 'date_deposited') {
+      if (field === 'date_deposited') {
         saveDateDeposited(checkId);
       } else if (field === 'bank_deposited') {
         saveBankDeposited(checkId);
@@ -449,6 +539,7 @@ function Dashboard() {
   const openEditModal = (check) => {
     setCurrentCheck(check);
     setEditFormData({
+      bank_name: check.bank_name || '',
       account_name: check.account_name || '',
       pay_to_the_order_of: check.pay_to_the_order_of || '',
       amount: check.amount || '',
@@ -457,8 +548,7 @@ function Dashboard() {
       cr_date: check.cr_date || '',
       invoice_no: check.invoice_no || '',
       account_no: check.account_no || '',
-      check_no: check.check_no || '',
-      bank_name: check.bank_name || ''
+      check_no: check.check_no || ''
     });
     setEditModalOpen(true);
   };
@@ -516,18 +606,6 @@ function Dashboard() {
     }
   };
 
-  const handleMarkNotReceived = async (checkId) => {
-    if (!window.confirm('Mark this check as not received? This will clear the received date and received by information.')) return;
-    try {
-      await axios.put(`${API_URL}/api/checks/${checkId}/unreceived`);
-      await refreshData();
-      showToast('Check marked as not received', 'success');
-    } catch (error) {
-      console.error('Error marking not received:', error);
-      alert('Failed to update check status');
-    }
-  };
-
   const openImageModal = (imageUrl) => {
     setSelectedImage(imageUrl);
     setImageModalOpen(true);
@@ -579,6 +657,7 @@ function Dashboard() {
 
   const handleNotificationClick = (checkId) => {
     setActiveTab('checks');
+    setSelectedCheckId(checkId);
     setTimeout(() => {
       const row = document.getElementById(`check-row-${checkId}`);
       if (row) {
@@ -682,6 +761,11 @@ function Dashboard() {
             <span className="stat-value">{getLatestScanDate()}</span>
             <span className="stat-label-compact">Latest Scan</span>
           </div>
+          {selectedCheckId && (
+            <div className="stat-item">
+              <span className="stat-label-compact">Selected Check: #{filteredChecks.find(c => c._id === selectedCheckId)?.check_no || '-'}</span>
+            </div>
+          )}
         </div>
 
         <div className="tabs">
@@ -700,86 +784,122 @@ function Dashboard() {
         </div>
 
         {activeTab === 'checks' && (
-          <div className="filter-section-compact">
-            <div className="filter-group">
-              <span className="filter-label">Status:</span>
-              <div className="status-filter">
-                <button
-                  className={`filter-button ${filterStatus === 'all' ? 'active' : ''}`}
-                  onClick={() => setFilterStatus('all')}
+          <>
+            {/* Action Bar - Buttons at the top */}
+            <div className="action-bar">
+              <div className="action-buttons">
+                <button 
+                  onClick={handleEditSelected} 
+                  className="action-btn edit-btn"
+                  disabled={!selectedCheckId}
                 >
-                  All
+                  ✏️ Edit
                 </button>
-                <button
-                  className={`filter-button ${filterStatus === 'received' ? 'active' : ''}`}
-                  onClick={() => setFilterStatus('received')}
+                <button 
+                  onClick={handleDeleteSelected} 
+                  className="action-btn delete-btn"
+                  disabled={!selectedCheckId}
                 >
-                  Received
+                  🗑️ Delete
                 </button>
-                <button
-                  className={`filter-button ${filterStatus === 'not_received' ? 'active' : ''}`}
-                  onClick={() => setFilterStatus('not_received')}
+                <button 
+                  onClick={handleMarkNotReceivedSelected} 
+                  className="action-btn unreceive-btn"
+                  disabled={!selectedCheckId || !filteredChecks.find(c => c._id === selectedCheckId)?.is_received}
                 >
-                  Not Received
+                  📤 Not Received
                 </button>
               </div>
-            </div>
-
-            <div className="filter-group">
-              <span className="filter-label">Scan Date:</span>
-              <div className="date-filter-wrapper">
-                <input
-                  type="date"
-                  value={scanDate}
-                  onChange={(e) => setScanDate(e.target.value)}
-                  className="date-input"
-                />
-                {scanDate && (
-                  <button onClick={clearScanDateFilter} className="clear-date-button" title="Clear scan date filter">
-                    ×
-                  </button>
+              <div className="selection-hint">
+                {selectedCheckId ? (
+                  <span className="selected-info">✓ Check #{filteredChecks.find(c => c._id === selectedCheckId)?.check_no} selected</span>
+                ) : (
+                  <span className="hint-text">💡 Click on any row to select a check, then use the buttons above</span>
                 )}
               </div>
             </div>
 
-            <div className="filter-group">
-              <span className="filter-label">Deposited Date:</span>
-              <div className="date-filter-wrapper">
-                <input
-                  type="date"
-                  value={depositedDate}
-                  onChange={(e) => setDepositedDate(e.target.value)}
-                  className="date-input"
-                />
-                {depositedDate && (
-                  <button onClick={clearDepositedDateFilter} className="clear-date-button" title="Clear deposited date filter">
-                    ×
+            <div className="filter-section-compact">
+              <div className="filter-group">
+                <span className="filter-label">Status:</span>
+                <div className="status-filter">
+                  <button
+                    className={`filter-button ${filterStatus === 'all' ? 'active' : ''}`}
+                    onClick={() => setFilterStatus('all')}
+                  >
+                    All
                   </button>
-                )}
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <span className="filter-label">Received Date:</span>
-              <div className="date-filter-wrapper">
-                <input
-                  type="date"
-                  value={receivedDateFilter}
-                  onChange={(e) => setReceivedDateFilter(e.target.value)}
-                  className="date-input"
-                />
-                {receivedDateFilter && (
-                  <button onClick={clearReceivedDateFilter} className="clear-date-button" title="Clear received date filter">
-                    ×
+                  <button
+                    className={`filter-button ${filterStatus === 'received' ? 'active' : ''}`}
+                    onClick={() => setFilterStatus('received')}
+                  >
+                    Received
                   </button>
-                )}
+                  <button
+                    className={`filter-button ${filterStatus === 'not_received' ? 'active' : ''}`}
+                    onClick={() => setFilterStatus('not_received')}
+                  >
+                    Not Received
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <button onClick={exportToExcel} className="export-button-compact">
-              Export to Excel
-            </button>
-          </div>
+              <div className="filter-group">
+                <span className="filter-label">Scan Date:</span>
+                <div className="date-filter-wrapper">
+                  <input
+                    type="date"
+                    value={scanDate}
+                    onChange={(e) => setScanDate(e.target.value)}
+                    className="date-input"
+                  />
+                  {scanDate && (
+                    <button onClick={clearScanDateFilter} className="clear-date-button" title="Clear scan date filter">
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <span className="filter-label">Deposited Date:</span>
+                <div className="date-filter-wrapper">
+                  <input
+                    type="date"
+                    value={depositedDate}
+                    onChange={(e) => setDepositedDate(e.target.value)}
+                    className="date-input"
+                  />
+                  {depositedDate && (
+                    <button onClick={clearDepositedDateFilter} className="clear-date-button" title="Clear deposited date filter">
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <span className="filter-label">Received Date:</span>
+                <div className="date-filter-wrapper">
+                  <input
+                    type="date"
+                    value={receivedDateFilter}
+                    onChange={(e) => setReceivedDateFilter(e.target.value)}
+                    className="date-input"
+                  />
+                  {receivedDateFilter && (
+                    <button onClick={clearReceivedDateFilter} className="clear-date-button" title="Clear received date filter">
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button onClick={exportToExcel} className="export-button-compact">
+                Export to Excel
+              </button>
+            </div>
+          </>
         )}
       </div>
 
@@ -801,6 +921,7 @@ function Dashboard() {
                 <table className="checks-table">
                   <thead>
                     <tr>
+                      <th style={{ width: '30px' }}></th>
                       <th>Date of Scan</th>
                       <th>Image</th>
                       <th>Uploader</th>
@@ -820,12 +941,21 @@ function Dashboard() {
                       <th>Date Deposited</th>
                       <th>Bank Deposited</th>
                       <th>Deposited By</th>
-                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredChecks.map((check) => (
-                      <tr key={check._id} id={`check-row-${check._id}`}>
+                      <tr 
+                        key={check._id} 
+                        id={`check-row-${check._id}`}
+                        className={selectedCheckId === check._id ? 'selected-row' : ''}
+                        onClick={() => handleRowSelect(check._id)}
+                      >
+                        <td className="radio-cell">
+                          <div className={`custom-radio ${selectedCheckId === check._id ? 'selected' : ''}`}>
+                            {selectedCheckId === check._id && <span className="radio-check">✓</span>}
+                          </div>
+                        </td>
                         <td>{formatDate(check.created_at)}</td>
                         <td className="image-cell">
                           {check.image_url ? (
@@ -833,27 +963,16 @@ function Dashboard() {
                               src={check.image_url} 
                               alt="Check" 
                               className="thumbnail clickable-image" 
-                              onClick={() => openImageModal(check.image_url)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openImageModal(check.image_url);
+                              }}
                               style={{ cursor: 'pointer' }}
                             />
                           ) : '-'}
                         </td>
                         <td>{check.user_full_name || '-'}</td>
-                        <td className="editable-cell-container">
-                          <input
-                            ref={el => inputRefs.current[`bank_name-${check._id}`] = el}
-                            type="text"
-                            value={tempBankName[check._id] || ''}
-                            onChange={(e) => {
-                              const newValue = e.target.value;
-                              setTempBankName(prev => ({ ...prev, [check._id]: newValue }));
-                            }}
-                            onKeyPress={(e) => handleKeyPress(e, check._id, 'bank_name')}
-                            className="inline-text-input"
-                            placeholder="Enter bank name"
-                          />
-                          {savingFields[`bank_name-${check._id}`] && <span className="saving-indicator">Saving...</span>}
-                        </td>
+                        <td>{check.bank_name || '-'}</td>
                         <td>{check.account_name || '-'}</td>
                         <td>{check.account_no || '-'}</td>
                         <td className="check-number">{check.check_no || '-'}</td>
@@ -868,7 +987,10 @@ function Dashboard() {
                             <span className="received-badge">Received</span>
                           ) : (
                             <button 
-                              onClick={() => openReceivedModal(check._id)} 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openReceivedModal(check._id);
+                              }} 
                               className="mark-received-button"
                             >
                               Mark Received
@@ -883,12 +1005,14 @@ function Dashboard() {
                             type="date"
                             value={formatDateForInput(tempDateDeposited[check._id] || '')}
                             onChange={(e) => {
+                              e.stopPropagation();
                               const newValue = e.target.value;
                               setTempDateDeposited(prev => ({ ...prev, [check._id]: newValue }));
                             }}
                             onKeyPress={(e) => handleKeyPress(e, check._id, 'date_deposited')}
                             className="inline-date-input"
                             placeholder="Select date"
+                            onClick={(e) => e.stopPropagation()}
                           />
                           {savingFields[`date_deposited-${check._id}`] && <span className="saving-indicator">Saving...</span>}
                         </td>
@@ -898,12 +1022,14 @@ function Dashboard() {
                             type="text"
                             value={tempBankDeposited[check._id] || ''}
                             onChange={(e) => {
+                              e.stopPropagation();
                               const newValue = e.target.value;
                               setTempBankDeposited(prev => ({ ...prev, [check._id]: newValue }));
                             }}
                             onKeyPress={(e) => handleKeyPress(e, check._id, 'bank_deposited')}
                             className="inline-text-input"
                             placeholder="Enter bank name"
+                            onClick={(e) => e.stopPropagation()}
                           />
                         </td>
                         <td className="editable-cell-container">
@@ -912,36 +1038,21 @@ function Dashboard() {
                             type="text"
                             value={tempDepositedBy[check._id] || ''}
                             onChange={(e) => {
+                              e.stopPropagation();
                               const newValue = e.target.value;
                               setTempDepositedBy(prev => ({ ...prev, [check._id]: newValue }));
                             }}
                             onKeyPress={(e) => handleKeyPress(e, check._id, 'deposited_by')}
                             className="inline-text-input"
                             placeholder="Enter name"
+                            onClick={(e) => e.stopPropagation()}
                           />
                         </td>
-                        <td className="actions">
-                          <button onClick={() => openEditModal(check)} className="edit-button" title="Edit check details">
-                            Edit
-                          </button>
-                          <button onClick={() => handleDelete(check._id)} className="delete-button" title="Delete check">
-                            Delete
-                          </button>
-                          <button 
-                            onClick={() => handleMarkNotReceived(check._id)} 
-                            className={`unmark-button ${check.is_received ? 'active' : 'disabled'}`}
-                            title={check.is_received ? "Mark as not received" : "Not received (already not received)"}
-                            style={!check.is_received ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                            disabled={!check.is_received}
-                          >
-                            Not Received
-                          </button>
-                         </td>
-                       </tr>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
-                <div className="scroll-hint">← Drag to scroll horizontally →</div>
+                <div className="scroll-hint">← Click and drag anywhere on the table to scroll horizontally →</div>
               </div>
             )}
           </>
@@ -1013,6 +1124,7 @@ function Dashboard() {
                   value={editFormData.bank_name}
                   onChange={(e) => setEditFormData({ ...editFormData, bank_name: e.target.value })}
                   placeholder="Enter bank name"
+                  className="edit-input"
                 />
               </div>
               <div className="form-group">
@@ -1022,6 +1134,7 @@ function Dashboard() {
                   value={editFormData.account_name}
                   onChange={(e) => setEditFormData({ ...editFormData, account_name: e.target.value })}
                   placeholder="Enter account name"
+                  className="edit-input"
                 />
               </div>
               <div className="form-group">
@@ -1031,6 +1144,7 @@ function Dashboard() {
                   value={editFormData.account_no}
                   onChange={(e) => setEditFormData({ ...editFormData, account_no: e.target.value })}
                   placeholder="Enter account number"
+                  className="edit-input"
                 />
               </div>
               <div className="form-group">
@@ -1040,6 +1154,7 @@ function Dashboard() {
                   value={editFormData.check_no}
                   onChange={(e) => setEditFormData({ ...editFormData, check_no: e.target.value })}
                   placeholder="Enter check number"
+                  className="edit-input"
                 />
               </div>
               <div className="form-group">
@@ -1049,6 +1164,7 @@ function Dashboard() {
                   value={editFormData.pay_to_the_order_of}
                   onChange={(e) => setEditFormData({ ...editFormData, pay_to_the_order_of: e.target.value })}
                   placeholder="Enter payee name"
+                  className="edit-input"
                 />
               </div>
               <div className="form-group">
@@ -1058,6 +1174,7 @@ function Dashboard() {
                   value={editFormData.amount}
                   onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
                   placeholder="Enter amount"
+                  className="edit-input"
                 />
               </div>
               <div className="form-group">
@@ -1067,6 +1184,7 @@ function Dashboard() {
                   value={editFormData.date}
                   onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
                   placeholder="MM/DD/YY"
+                  className="edit-input"
                 />
               </div>
               <div className="form-group">
@@ -1076,6 +1194,7 @@ function Dashboard() {
                   value={editFormData.cr}
                   onChange={(e) => setEditFormData({ ...editFormData, cr: e.target.value })}
                   placeholder="Enter CR number"
+                  className="edit-input"
                 />
               </div>
               <div className="form-group">
@@ -1085,6 +1204,7 @@ function Dashboard() {
                   value={editFormData.cr_date}
                   onChange={(e) => setEditFormData({ ...editFormData, cr_date: e.target.value })}
                   placeholder="MM/DD/YY"
+                  className="edit-input"
                 />
               </div>
               <div className="form-group">
@@ -1094,6 +1214,7 @@ function Dashboard() {
                   value={editFormData.invoice_no}
                   onChange={(e) => setEditFormData({ ...editFormData, invoice_no: e.target.value })}
                   placeholder="Enter invoice number"
+                  className="edit-input"
                 />
               </div>
               <div className="modal-buttons">
