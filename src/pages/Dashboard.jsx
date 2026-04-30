@@ -15,6 +15,7 @@ function Dashboard() {
   const [depositedDate, setDepositedDate] = useState('');
   const [receivedDateFilter, setReceivedDateFilter] = useState('');
   const [accountNameFilter, setAccountNameFilter] = useState(''); // New filter state
+  const [depositedFilter, setDepositedFilter] = useState('all'); // New filter for deposited status
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -307,6 +308,13 @@ function Dashboard() {
       );
     }
 
+    // New: Deposited status filter
+    if (depositedFilter === 'deposited') {
+      result = result.filter(check => check.date_deposited && check.date_deposited.trim() !== '');
+    } else if (depositedFilter === 'not_deposited') {
+      result = result.filter(check => !check.date_deposited || check.date_deposited.trim() === '');
+    }
+
     setFilteredChecks(result);
     setSelectedCheckId(null);
   };
@@ -425,7 +433,7 @@ function Dashboard() {
 
   useEffect(() => {
     applyFilters();
-  }, [filterStatus, scanDate, depositedDate, receivedDateFilter, accountNameFilter, checks]);
+  }, [filterStatus, scanDate, depositedDate, receivedDateFilter, accountNameFilter, depositedFilter, checks]);
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
@@ -808,6 +816,30 @@ function Dashboard() {
                     onClick={() => setFilterStatus('not_received')}
                   >
                     Not Received
+                  </button>
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <span className="filter-label">Deposited:</span>
+                <div className="status-filter">
+                  <button
+                    className={`filter-button ${depositedFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setDepositedFilter('all')}
+                  >
+                    All
+                  </button>
+                  <button
+                    className={`filter-button ${depositedFilter === 'deposited' ? 'active' : ''}`}
+                    onClick={() => setDepositedFilter('deposited')}
+                  >
+                    Deposited
+                  </button>
+                  <button
+                    className={`filter-button ${depositedFilter === 'not_deposited' ? 'active' : ''}`}
+                    onClick={() => setDepositedFilter('not_deposited')}
+                  >
+                    Not Deposited
                   </button>
                 </div>
               </div>
