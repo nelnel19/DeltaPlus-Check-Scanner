@@ -763,8 +763,6 @@ function Dashboard() {
       {/* Viewer mode indicator */}
       {isViewer && (
         <div className="viewer-banner">
-          <span className="viewer-icon">👁️</span>
-          <span>Viewer Mode - You can only view data, no editing allowed</span>
         </div>
       )}
 
