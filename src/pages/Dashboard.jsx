@@ -52,11 +52,7 @@ function Dashboard() {
   const [tempDepositedBy, setTempDepositedBy] = useState({});
   const [savingFields, setSavingFields] = useState({});
   
-  // Drag-to-scroll states - kept for backward compatibility but keyboard navigation is primary
   const tableWrapperRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartX, setDragStartX] = useState(0);
-  const [dragStartScrollLeft, setDragStartScrollLeft] = useState(0);
   
   const navigate = useNavigate();
   const refreshTimeoutRef = useRef(null);
@@ -70,7 +66,7 @@ function Dashboard() {
     }, 3000);
   };
 
-  // Keyboard navigation for horizontal scrolling
+  // Keyboard navigation for horizontal scrolling - faster scrolling
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Only handle arrow keys when the checks tab is active
@@ -85,7 +81,7 @@ function Dashboard() {
       const wrapper = tableWrapperRef.current;
       if (!wrapper) return;
       
-      const scrollAmount = 100; // pixels to scroll per key press
+      const scrollAmount = 200; // pixels to scroll per key press - faster
       
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -101,61 +97,6 @@ function Dashboard() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [activeTab]);
-
-  // Fixed smooth drag scrolling - mouse movement exactly follows
-  const handleMouseDown = (e) => {
-    // For viewers, we still want to allow drag scrolling
-    const target = e.target;
-    if (
-      target.tagName === 'INPUT' ||
-      target.tagName === 'BUTTON' ||
-      target.closest('.editable-cell-container') ||
-      target.closest('.action-bar') ||
-      target.closest('.mark-received-button') ||
-      target.closest('.filter-button') ||
-      target.closest('.tab-button') ||
-      target.closest('.action-btn') ||
-      target.closest('.export-button-compact') ||
-      target.closest('.clear-date-button')
-    ) {
-      return;
-    }
-    
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStartX(e.pageX);
-    setDragStartScrollLeft(tableWrapperRef.current.scrollLeft);
-    tableWrapperRef.current.style.cursor = 'grabbing';
-    tableWrapperRef.current.style.userSelect = 'none';
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isDragging || !tableWrapperRef.current) return;
-    e.preventDefault();
-    
-    const dx = e.pageX - dragStartX;
-    const newScrollLeft = dragStartScrollLeft - dx;
-    tableWrapperRef.current.scrollLeft = newScrollLeft;
-  };
-
-  const handleMouseUp = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    if (tableWrapperRef.current) {
-      tableWrapperRef.current.style.cursor = 'grab';
-      tableWrapperRef.current.style.userSelect = '';
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (isDragging) {
-      setIsDragging(false);
-      if (tableWrapperRef.current) {
-        tableWrapperRef.current.style.cursor = 'grab';
-        tableWrapperRef.current.style.userSelect = '';
-      }
-    }
-  };
 
   // Row selection with toggle functionality (only for admin)
   const handleRowSelect = (checkId) => {
@@ -1015,13 +956,9 @@ function Dashboard() {
               <div className="empty-state">No checks saved yet. Use the mobile app to scan and save checks.</div>
             ) : (
               <div 
-                className="table-wrapper drag-scroll" 
+                className="table-wrapper" 
                 ref={tableWrapperRef}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseLeave}
-                style={{ cursor: 'grab' }}
+                style={{ overflowX: 'auto', cursor: 'default' }}
               >
                 <table className="checks-table">
                   <thead>
@@ -1062,7 +999,7 @@ function Dashboard() {
                             <div className={`custom-radio ${selectedCheckId === check._id ? 'selected' : ''}`}>
                               {selectedCheckId === check._id && <span className="radio-check">✓</span>}
                             </div>
-                          </td>
+                           </td>
                         )}
                         <td>{formatDate(check.created_at)}</td>
                         <td className="image-cell">
@@ -1176,7 +1113,6 @@ function Dashboard() {
                     ))}
                   </tbody>
                 </table>
-                <div className="scroll-hint">Click and drag anywhere on the table to scroll horizontally</div>
               </div>
             )}
           </>
