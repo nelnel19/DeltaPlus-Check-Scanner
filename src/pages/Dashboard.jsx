@@ -52,7 +52,7 @@ function Dashboard() {
   const [tempDepositedBy, setTempDepositedBy] = useState({});
   const [savingFields, setSavingFields] = useState({});
   
-  // Drag-to-scroll states - Fixed for smooth tracking
+  // Drag-to-scroll states - kept for backward compatibility but keyboard navigation is primary
   const tableWrapperRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartX, setDragStartX] = useState(0);
@@ -69,6 +69,38 @@ function Dashboard() {
       setToast(null);
     }, 3000);
   };
+
+  // Keyboard navigation for horizontal scrolling
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only handle arrow keys when the checks tab is active
+      if (activeTab !== 'checks') return;
+      
+      // Don't interfere with typing in input fields
+      const activeElement = document.activeElement;
+      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable)) {
+        return;
+      }
+      
+      const wrapper = tableWrapperRef.current;
+      if (!wrapper) return;
+      
+      const scrollAmount = 100; // pixels to scroll per key press
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        wrapper.scrollLeft -= scrollAmount;
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        wrapper.scrollLeft += scrollAmount;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeTab]);
 
   // Fixed smooth drag scrolling - mouse movement exactly follows
   const handleMouseDown = (e) => {
